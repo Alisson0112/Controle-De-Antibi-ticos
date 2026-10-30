@@ -2,36 +2,44 @@
 
 Sistema web de controle de uso de antibióticos por paciente e por setor, com controle de estoque e relatórios, usado pelos farmacêuticos da Farmácia.
 
+**Endereço oficial:** https://controledeantibioticos.pages.dev (Cloudflare Pages)
+
 ## Estrutura
 
-| Arquivo | Descrição |
+| Caminho | Descrição |
 |---|---|
-| `index.html` | O sistema completo (HTML + CSS + JavaScript em um único arquivo, sem etapa de build). **É o arquivo publicado.** |
+| `public/index.html` | O sistema completo (HTML + CSS + JavaScript em um único arquivo, sem build). **Só a pasta `public/` é publicada.** |
+| `public/_headers` | Cabeçalhos de segurança e regra de cache (o `index.html` é sempre revalidado). |
+| `redirect-enderecos-antigos/` | Arquivos que redirecionam os endereços antigos (Netlify e Workers) para o oficial. Não são publicados pelo Pages. |
 | `docs/RESUMO_DO_PROJETO.md` | Regras de negócio, histórico de alterações, mapa do código e pendências. |
 | `planilha/controle_antibioticos.xlsx` | Versão em Excel (agosto/2026). Desatualizada em relação ao sistema web. |
 
 ## Arquitetura
 
-- **Front-end:** `index.html` estático, sem dependências de build.
-- **Banco de dados e login:** Firebase, projeto `controle-de-antibiotico` (Firestore + Authentication por e-mail e senha). Nenhum dado fica na hospedagem nem neste repositório.
-- **Hospedagem:**
-  - Cloudflare Workers: `controledeantibioticos.planilhahne.workers.dev`
-  - Netlify: `controledeantibioticos.netlify.app`
+- **Front-end:** `public/index.html` estático.
+- **Banco de dados e login:** Firebase, projeto `controle-de-antibiotico`. Coleções do Firestore: `records` (registros), `stock` (estoque) e `config/system` (configurações). Autenticação por e-mail e senha. Nenhum dado fica na hospedagem nem neste repositório.
+- **Hospedagem:** Cloudflare Pages ligado a este repositório. Cada push na branch `main` publica automaticamente.
 
-> A configuração web do Firebase no `index.html` é pública por design. Quem protege os dados são as **regras de segurança do Firestore**, que devem exigir usuário autenticado.
+> A configuração web do Firebase no `index.html` é pública por design. Quem protege os dados são as **regras de segurança do Firestore**, que devem exigir usuário autenticado. **Nunca** faça commit de backups `.json`, porque eles contêm dados de pacientes.
 
-## Abas
+## Configuração do Cloudflare Pages (feita uma vez)
 
-Registros · Estoque · Protocolo de Infusão · Relatórios · Configurações
+1. Cloudflare → **Workers e Pages** → **Criar aplicação** → **Pages** → **Conectar ao Git**.
+2. Autorize o GitHub e escolha `Alisson0112/Controle-De-Antibi-ticos`.
+3. Nome do projeto: `controledeantibioticos` · Branch de produção: `main`.
+4. Predefinição de framework: **Nenhuma** · Comando de build: **(vazio)** · Diretório de saída do build: **`public`**.
+5. **Salvar e implantar.**
+6. Firebase → Authentication → Configurações → **Domínios autorizados** → adicionar `controledeantibioticos.pages.dev`.
 
 ## Como publicar uma nova versão
 
-1. Altere o `index.html` e faça commit neste repositório.
-2. **Cloudflare:** Workers e Pages → `controledeantibioticos` → Nova implantação → enviar o `index.html`.
-3. **Netlify:** projeto `controledeantibioticos` → Deploys → arrastar o arquivo.
-4. Atualize **os dois** endereços, porque ambos gravam no mesmo banco.
-5. Se um endereço novo for criado, cadastre-o no Firebase em Authentication → Configurações → Domínios autorizados.
-6. Use Ctrl+F5 para conferir a versão nova.
+Altere `public/index.html`, faça commit e push na `main`. O Pages publica em cerca de 1 minuto. Para testar antes, use outra branch: o Pages gera uma URL de pré-visualização.
+
+## Desativar os endereços antigos
+
+1. Confirme que o Pages funciona com login e dados.
+2. Envie a pasta `redirect-enderecos-antigos/` como nova implantação no **Netlify** e no **Worker** `controledeantibioticos`.
+3. Depois de duas a quatro semanas, exclua o site do Netlify e o Worker, e remova os domínios antigos dos domínios autorizados do Firebase.
 
 ## Backup
 

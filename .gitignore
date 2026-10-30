@@ -1,0 +1,4 @@
+# Backups contêm dados de pacientes: nunca versionar
+*.json
+backup_*
+.DS_Store
