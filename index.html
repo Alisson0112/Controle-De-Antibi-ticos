@@ -1,0 +1,3729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Controle de Antibióticos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root { --primary: #2c3e50; --secondary: #3498db; --accent: #e74c3c; --light: #ecf0f1; --dark: #34495e; --success: #2ecc71; --warning: #f39c12; --text: #333; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: #f5f7f9; color: var(--text); padding: 20px; min-height: 100vh; }
+.container { max-width: 1800px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); overflow: hidden; }
+header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo i { font-size: 24px; }
+.logo h1 { font-size: 20px; font-weight: 600; }
+.user-info { display: flex; align-items: center; gap: 10px; }
+.user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+nav { background: var(--dark); padding: 0 20px; }
+nav ul { display: flex; list-style: none; }
+nav li a { display: block; color: white; text-decoration: none; padding: 12px 20px; transition: background 0.3s; cursor: pointer; }
+nav li a:hover, nav li a.active { background: var(--secondary); }
+.tab-content { display: none; padding: 20px; animation: fadeIn 0.5s; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+.card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-title { font-size: 16px; font-weight: 600; color: #666; }
+.card-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
+.card-icon.blue { background: var(--secondary); }
+.card-icon.green { background: var(--success); }
+.card-icon.orange { background: var(--warning); }
+.card-icon.red { background: var(--accent); }
+.card-value { font-size: 28px; font-weight: 700; margin-bottom: 5px; }
+.card-description { font-size: 14px; color: #888; }
+.filters { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group label { font-size: 12px; font-weight: 600; color: #666; }
+input, select { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; transition: all 0.3s; }
+input:focus, select:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+.actions { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
+.btn-primary { background: var(--secondary); color: white; }
+.btn-primary:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #27ae60; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn-danger { background: var(--accent); color: white; }
+.btn-danger:hover { background: #c0392b; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.data-table-container { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-bottom: 20px; overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { background: #f8f9fa; color: #444; text-align: left; padding: 15px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.data-table td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+.data-table tr:nth-child(even) { background: #fafbfc; }
+.data-table tr:hover { background: #f1f7fd; }
+.status { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+.status-active { background: #e8f5e9; color: #2e7d32; }
+.status-inactive { background: #ffebee; color: #c62828; }
+.status-finalizado { background: #e3f2fd; color: #1565c0; }
+.action-buttons { display: flex; gap: 8px; }
+.action-btn { padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+.edit-btn { background: #e3f2fd; color: #1976d2; }
+.edit-btn:hover { background: #bbdefb; }
+.delete-btn { background: #ffebee; color: #d32f2f; }
+.delete-btn:hover { background: #ffcdd2; }
+.pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 5px; flex-wrap: wrap; }
+.pagination button { padding: 8px 14px; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+.pagination button:hover:not(:disabled) { background: #f5f5f5; }
+.pagination button.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination-info { font-size: 13px; color: #777; margin-right: 10px; }
+footer { background: white; padding: 15px 20px; text-align: center; font-size: 14px; color: #666; margin-top: 20px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; padding: 25px; border-radius: 12px; width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+.modal-header h2 { font-size: 20px; color: var(--primary); }
+.close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; transition: all 0.3s; }
+.close:hover { color: var(--accent); }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #555; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+.form-hint { display: block; margin-top: 6px; font-size: 12px; color: #888; }
+.med-select-wrapper { position: relative; }
+.med-select-wrapper input#inputMedicamentoSearch.invalid-selection { border-color: var(--accent); }
+.med-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 220px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); z-index: 20; }
+.med-dropdown.open { display: block; }
+.med-dropdown-option { padding: 9px 12px; font-size: 14px; cursor: pointer; }
+.med-dropdown-option:hover, .med-dropdown-option.highlighted { background: var(--light); }
+.med-dropdown-empty { padding: 9px 12px; font-size: 13px; color: #888; font-style: italic; }
+.med-migration-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
+.med-migration-row:last-child { border-bottom: none; }
+.med-migration-old { flex: 1; font-size: 14px; }
+.med-migration-old strong { display: block; font-size: 14px; color: var(--text); }
+.med-migration-old span { font-size: 12px; color: #888; }
+.med-migration-row select { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.med-migration-arrow { color: #aaa; }
+.form-row { display: flex; gap: 15px; }
+.form-row .form-group { flex: 1; }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; }
+.notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 1100; opacity: 0; transform: translateX(100%); transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; }
+.notification.show { opacity: 1; transform: translateX(0); }
+.notification.success { background: var(--success); }
+.notification.error { background: var(--accent); }
+.empty-state { text-align: center; padding: 40px 20px; color: #777; }
+.empty-state i { font-size: 56px; margin-bottom: 15px; color: #ddd; }
+.empty-state h3 { margin-bottom: 10px; font-weight: 600; }
+@media (max-width: 1200px) { .data-table-container { overflow-x: auto; } .data-table { min-width: 1200px; } }
+@media (max-width: 768px) {
+  nav ul { flex-direction: column; }
+  .filters { grid-template-columns: 1fr; }
+  .actions { flex-direction: column; }
+  .actions > div { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { flex: 1; justify-content: center; }
+  .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+  .action-buttons { flex-direction: column; gap: 5px; }
+  .form-row { flex-direction: column; gap: 0; }
+}
+.days-warning { color: #e74c3c; font-weight: bold; }
+.days-normal { color: #27ae60; }
+.stock-normal { text-align: center; font-weight: 600; color: #2e7d32; }
+.stock-atencao { text-align: center; font-weight: 700; color: #fff; background: #f39c12; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+.stock-critico { text-align: center; font-weight: 700; color: #fff; background: #a93226; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+.stock-mcritico { text-align: center; font-weight: 700; color: #fff; background: #8e44ad; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+.stock-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; font-size: 13px; align-items: center; }
+.stock-legend span { display: flex; align-items: center; gap: 6px; }
+.stock-legend i { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+.protocol-note { background: #fff8e1; border-left: 4px solid var(--warning); padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #555; }
+.protocol-note strong { color: var(--accent); }
+.bic-yes { color: #2e7d32; font-weight: 700; }
+.bic-no { color: #999; }
+.stock-input { width: 80px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+.stock-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+.stock-updated { animation: stockPulse 0.6s ease; }
+@keyframes stockPulse { 0% { background: #fff9c4; } 100% { background: transparent; } }
+.stock-tratamento-value { display: inline-block; min-width: 50px; text-align: center; font-weight: 600; color: #555; background: #f0f2f5; border-radius: 6px; padding: 6px 8px; }
+.stock-unmatched-warning { background: #fff8e1; border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: 6px; font-size: 12.5px; color: #555; margin-bottom: 15px; }
+.stock-unmatched-warning strong { color: var(--accent); }
+
+/* Aba Configurações */
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
+.config-card { background: white; border-radius: 10px; padding: 22px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.config-card-full { grid-column: 1 / -1; }
+.config-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #eee; }
+.config-card-header .card-icon { width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; }
+.config-card-header h3 { font-size: 16px; color: var(--primary); }
+.config-card-header p { font-size: 12px; color: #888; margin-top: 2px; }
+.notify-option { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 8px; transition: background 0.2s; }
+.notify-option:hover { background: #f8f9fa; }
+.notify-option input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--secondary); cursor: pointer; }
+.notify-option .notify-text { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.notify-option .notify-title { font-weight: 600; font-size: 14px; color: #333; }
+.notify-option .notify-desc { font-size: 12px; color: #888; }
+.backup-warning { background: #fff8e1; border-left: 4px solid var(--warning); padding: 14px 16px; border-radius: 6px; font-size: 13px; color: #555; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; }
+.backup-warning i { color: var(--warning); font-size: 18px; margin-top: 2px; }
+.backup-status { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.backup-status-label { font-size: 13px; color: #666; }
+.backup-status-value { font-weight: 700; font-size: 14px; }
+.backup-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.backup-badge.ok { background: #e8f5e9; color: #2e7d32; }
+.backup-badge.warn { background: #fff3e0; color: #e65100; }
+.backup-badge.never { background: #ffebee; color: #c62828; }
+.config-tips { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.config-tips li { display: flex; gap: 10px; font-size: 13px; color: #555; align-items: flex-start; }
+.config-tips li i { color: var(--secondary); margin-top: 2px; width: 14px; }
+
+/* Tela de login */
+#loginScreen { position: fixed; inset: 0; background: linear-gradient(135deg, var(--primary), var(--dark)); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+.login-box { background: white; border-radius: 14px; padding: 36px 32px; width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; }
+.login-box .login-icon { width: 60px; height: 60px; border-radius: 50%; background: var(--secondary); color: white; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px; }
+.login-box h2 { color: var(--primary); margin-bottom: 6px; }
+.login-box p { color: #888; font-size: 13px; margin-bottom: 24px; }
+.login-box .form-group { text-align: left; margin-bottom: 16px; }
+.login-box button { width: 100%; justify-content: center; margin-top: 6px; }
+.login-error { background: #ffebee; color: #c62828; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+.login-error.show { display: block; }
+.login-loading { font-size: 13px; color: #888; margin-top: 12px; display: none; }
+.login-loading.show { display: block; }
+#appContainer { display: none; }
+#appContainer.visible { display: block; }
+.logout-btn { background: none; border: none; color: white; opacity: 0.8; cursor: pointer; font-size: 16px; padding: 6px; transition: opacity 0.2s; }
+.logout-btn:hover { opacity: 1; }
+
+/* Filtro estilo Excel nas colunas da tabela de Registros */
+.data-table th.filterable-th { position: relative; cursor: default; }
+.col-filter-btn { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; margin-left: 6px; padding: 2px 4px; border-radius: 3px; font-size: 11px; vertical-align: middle; }
+.col-filter-btn:hover { opacity: 1; background: rgba(255,255,255,0.15); }
+.col-filter-btn.active { opacity: 1; color: #ffd54f; }
+.col-filter-panel { position: absolute; z-index: 3000; background: white; color: #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); width: 240px; font-size: 13px; padding: 10px; display: none; }
+.col-filter-panel.open { display: block; }
+.col-filter-panel .cf-sort-btn { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: none; padding: 7px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: #333; }
+.col-filter-panel .cf-sort-btn:hover { background: #f2f4f6; }
+.col-filter-panel hr { border: none; border-top: 1px solid #eee; margin: 6px 0; }
+.col-filter-panel .cf-search { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 12.5px; margin-bottom: 6px; }
+.col-filter-panel .cf-list { max-height: 160px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; padding: 4px 2px; margin-bottom: 8px; }
+.col-filter-panel .cf-option { display: flex; align-items: center; gap: 7px; padding: 4px 6px; font-size: 12.5px; border-radius: 4px; }
+.col-filter-panel .cf-option:hover { background: #f7f8fa; }
+.col-filter-panel .cf-option input { accent-color: var(--secondary); }
+.col-filter-panel .cf-option label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.col-filter-panel .cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.col-filter-panel .cf-actions button { padding: 5px 12px; border-radius: 5px; border: none; font-size: 12px; cursor: pointer; }
+.col-filter-panel .cf-actions .cf-apply { background: var(--secondary); color: white; }
+.col-filter-panel .cf-actions .cf-cancel { background: #eee; color: #555; }
+.print-orientation { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #555; margin-right: 4px; }
+.print-orientation select { padding: 5px 6px; border-radius: 5px; border: 1px solid #ddd; font-size: 12.5px; }
+/* ---------- Relatórios: filtros avançados, seleção múltipla e gráficos ---------- */
+.rep-filters { align-items: end; }
+.rep-filters .filter-group > select, .rep-period-nav input { width: 100%; }
+@media (min-width: 900px) { .rep-period-group { grid-column: span 2; } }
+.rep-period-nav { display: flex; gap: 6px; align-items: stretch; }
+.rep-period-nav input { flex: 1; min-width: 130px; }
+.rep-nav-btn { border: 1px solid #ddd; background: white; border-radius: 6px; padding: 0 11px; cursor: pointer; color: #555; font-size: 13px; transition: all 0.2s; }
+.rep-nav-btn:hover { background: var(--light); color: var(--primary); }
+.rep-nav-today { font-weight: 600; font-size: 12px; }
+.rep-filter-summary { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #eee; font-size: 13px; color: #666; }
+.rep-clear-btn { border: none; background: none; color: var(--secondary); font-weight: 600; font-size: 13px; cursor: pointer; display: none; }
+.rep-clear-btn.visible { display: inline-flex; align-items: center; gap: 6px; }
+.rep-clear-btn:hover { text-decoration: underline; }
+.ms { position: relative; }
+.ms-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 14px; color: #333; cursor: pointer; text-align: left; transition: all 0.3s; }
+.ms-btn:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+.ms-btn .ms-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-btn i { font-size: 11px; color: #888; flex-shrink: 0; }
+.ms.ms-active .ms-btn { border-color: var(--secondary); background: #f3f9fe; }
+.ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); padding: 10px; z-index: 3000; }
+.ms.ms-open .ms-panel { display: block; }
+.ms-search { width: 100%; padding: 7px 9px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; margin-bottom: 6px; }
+.ms-panel .ms-opt { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 13px; font-weight: 400; border-radius: 4px; cursor: pointer; color: #333; }
+.ms-panel .ms-opt:hover { background: #f7f8fa; }
+.ms-panel .ms-opt input[type="checkbox"] { width: 16px; height: 16px; padding: 0; margin: 0; border: none; flex: 0 0 auto; accent-color: var(--secondary); }
+.ms-panel .ms-opt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-panel .ms-all { font-weight: 600; border-bottom: 1px solid #eee; margin-bottom: 4px; border-radius: 0; }
+.ms-list { max-height: 220px; overflow-y: auto; }
+.rep-cards { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.rep-cards .card-title { font-size: 14px; }
+.rep-cards .card-value { font-size: 22px; line-height: 1.25; word-break: break-word; }
+.rep-cards .card-description { font-size: 13px; }
+.rep-section-title { font-size: 16px; color: var(--primary); margin: 6px 0 10px 2px; }
+.rep-matrix th, .rep-matrix td { text-align: center; }
+.rep-matrix th:first-child, .rep-matrix td:first-child { text-align: left; }
+.rep-matrix .rep-cell-zero { color: #c3c8ce; }
+.rep-matrix .rep-cell-max { font-weight: 700; color: var(--primary); background: #eaf4fc; }
+.rep-matrix .rep-col-total { font-weight: 700; background: #f4f6f8; }
+.rep-matrix tfoot td { font-weight: 700; background: #eef1f4; border-top: 2px solid #dfe3e8; }
+.rep-matrix tfoot tr.rep-foot-sub td { font-weight: 400; color: #666; background: #f8f9fa; border-top: 1px solid #eee; }
+.rep-small-table { min-width: 0 !important; }
+.rep-qty { white-space: nowrap; }
+.rep-bar { height: 5px; background: #eef1f4; border-radius: 3px; margin-top: 5px; overflow: hidden; min-width: 90px; }
+.rep-bar span { display: block; height: 100%; background: var(--secondary); border-radius: 3px; }
+.rep-timeline-card { background: white; border-radius: 10px; padding: 16px 14px 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); overflow-x: auto; }
+.rep-timeline { display: flex; align-items: flex-end; gap: 4px; }
+.rep-tl-col { flex: 1 0 18px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.rep-tl-val { font-size: 11px; color: #555; font-weight: 600; height: 15px; }
+.rep-tl-barwrap { height: 100px; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid #e3e6ea; }
+.rep-tl-bar { width: 70%; max-width: 38px; background: var(--secondary); border-radius: 4px 4px 0 0; transition: height 0.3s; }
+.rep-tl-col.sel .rep-tl-bar { background: var(--warning); }
+.rep-tl-lbl { font-size: 10.5px; color: #888; margin-top: 4px; white-space: nowrap; }
+.rep-empty { text-align: center; color: #888; padding: 40px 10px; width: 100%; }
+.col-id-hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+<div class="login-box">
+<div class="login-icon"><i class="fas fa-lock"></i></div>
+<h2>Controle de Antibióticos</h2>
+<p>Entre com sua conta para acessar o sistema</p>
+<div class="login-error" id="loginError"></div>
+<form id="loginForm">
+<div class="form-group">
+<label for="loginEmail">E-mail</label>
+<input type="email" id="loginEmail" required autocomplete="username">
+</div>
+<div class="form-group">
+<label for="loginPassword">Senha</label>
+<input type="password" id="loginPassword" required autocomplete="current-password">
+</div>
+<button type="submit" class="btn btn-primary" id="loginSubmitBtn"><i class="fas fa-right-to-bracket"></i> Entrar</button>
+</form>
+<div class="login-loading" id="loginLoading">Verificando dados...</div>
+</div>
+</div>
+
+<div id="appContainer">
+<div class="container">
+<header>
+<div class="logo">
+<i class="fas fa-pills"></i>
+<h1 id="hospitalTitle">Controle de Antibióticos</h1>
+</div>
+<div class="user-info">
+<div class="user-avatar">FC</div>
+<div id="loggedUserEmail">Farmácia Clínica</div>
+<button class="logout-btn" id="logoutBtn" title="Sair"><i class="fas fa-right-from-bracket"></i></button>
+</div>
+</header>
+<nav>
+<ul>
+<li><a href="#" class="active" data-tab="registros"><i class="fas fa-list-alt"></i> Registros</a></li>
+<li><a href="#" data-tab="estoque"><i class="fas fa-boxes"></i> Estoque</a></li>
+<li><a href="#" data-tab="protocolo"><i class="fas fa-syringe"></i> Protocolo de Infusão</a></li>
+<li><a href="#" data-tab="relatorios"><i class="fas fa-chart-bar"></i> Relatórios</a></li>
+<li><a href="#" data-tab="configuracoes"><i class="fas fa-cog"></i> Configurações</a></li>
+</ul>
+</nav>
+
+
+<!-- Conteúdo da aba Registros -->
+<div id="registros" class="tab-content active">
+<div class="dashboard-cards">
+<div class="card">
+<div class="card-header">
+<div class="card-title">Total de Registros</div>
+<div class="card-icon blue"><i class="fas fa-list"></i></div>
+</div>
+<div class="card-value" id="totalRecords">0</div>
+<div class="card-description">Registros no sistema</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Tratamentos Ativos</div>
+<div class="card-icon green"><i class="fas fa-check-circle"></i></div>
+</div>
+<div class="card-value" id="activeTreatments">0</div>
+<div class="card-description">Pacientes em andamento</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Tratamentos Suspensos</div>
+<div class="card-icon orange"><i class="fas fa-exclamation-circle"></i></div>
+</div>
+<div class="card-value" id="reviewNeeded">0</div>
+<div class="card-description">Necessitam atenção</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Finalizados</div>
+<div class="card-icon red"><i class="fas fa-flag"></i></div>
+</div>
+<div class="card-value" id="finishedTreatments">0</div>
+<div class="card-description">Tratamentos concluídos</div>
+</div>
+</div>
+
+<div class="filters">
+<div class="filter-group">
+<label for="search">Pesquisar</label>
+<input type="text" id="search" placeholder="Digite para filtrar...">
+</div>
+<div class="filter-group">
+<label for="status">Status</label>
+<select id="status">
+<option value="">Todos</option>
+<option value="Ativo">Ativo</option>
+<option value="Finalizado">Finalizado</option>
+<option value="Suspenso">Suspenso</option>
+</select>
+</div>
+<div class="filter-group">
+<label for="date">Data de Início</label>
+<input type="date" id="date">
+</div>
+<div class="filter-group">
+<label for="patient">Paciente</label>
+<input type="text" id="patient" placeholder="Filtrar por paciente">
+</div>
+</div>
+
+<div class="actions">
+<div>
+<button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo Registro</button>
+</div>
+<div>
+<span class="print-orientation"><label for="printOrientationRegistros">Impressão</label>
+<select id="printOrientationRegistros"><option value="landscape">Paisagem</option><option value="portrait">Retrato</option><option value="auto">Escolher ao imprimir</option></select></span>
+<button class="btn btn-success" id="exportBtn"><i class="fas fa-download"></i> Exportar</button>
+<button class="btn btn-danger" id="printBtn"><i class="fas fa-print"></i> Imprimir</button>
+</div>
+</div>
+
+<div class="data-table-container">
+<table class="data-table" id="mainTable">
+<thead>
+<tr>
+<th class="col-id-hidden">ID</th>
+<th class="filterable-th" data-col="dataRegistro">Data Registro <button class="col-filter-btn" data-col="dataRegistro" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th class="filterable-th" data-col="setor">Setor <button class="col-filter-btn" data-col="setor" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th class="filterable-th" data-col="paciente">Paciente <button class="col-filter-btn" data-col="paciente" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th class="filterable-th" data-col="medicamento">Medicamento <button class="col-filter-btn" data-col="medicamento" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th class="filterable-th" data-col="via">Via <button class="col-filter-btn" data-col="via" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th>Dosagem</th>
+<th class="filterable-th" data-col="tratamento">Tratamento <button class="col-filter-btn" data-col="tratamento" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th>Posologia</th><th>Início</th><th>Duração</th>
+<th>Término</th><th>Dias Restantes</th><th>Ampola Diária</th><th>Total Ampolas</th>
+<th class="filterable-th" data-col="status">Status <button class="col-filter-btn" data-col="status" title="Filtrar/ordenar"><i class="fas fa-filter"></i></button></th>
+<th>Ações</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<div id="emptyState" class="empty-state" style="display: none;">
+<i class="fas fa-clipboard-list"></i>
+<h3>Nenhum registro encontrado</h3>
+<p>Tente ajustar os filtros ou adicionar um novo registro.</p>
+</div>
+
+<div class="pagination" id="pagination"></div>
+<div class="col-filter-panel" id="colFilterPanel"></div>
+</div>
+
+<!-- Conteúdo da aba Estoque -->
+<div id="estoque" class="tab-content">
+<h2>Estoque de Antibióticos</h2>
+<p>Situação do estoque (CAF + Farmácia) e do que já está reservado para tratamentos em andamento. Referência: <strong id="stockReferenceDate">nunca atualizado via PDF</strong>.</p>
+<div class="stock-legend">
+<span><i style="background:#8e44ad"></i> M. Crítico</span>
+<span><i style="background:#a93226"></i> Crítico</span>
+<span><i style="background:#f39c12"></i> Atenção</span>
+<span><i style="background:#2ecc71"></i> Disponível</span>
+</div>
+<div class="filters">
+<div class="filter-group">
+<label for="estoque-search">Pesquisar Antibiótico</label>
+<input type="text" id="estoque-search" placeholder="Digite o nome do antibiótico...">
+</div>
+<div class="filter-group">
+<label for="estoque-status">Situação</label>
+<select id="estoque-status">
+<option value="">Todas</option>
+<option value="mcritico">M. Crítico</option>
+<option value="critico">Crítico</option>
+<option value="atencao">Atenção</option>
+<option value="normal">Disponível</option>
+</select>
+</div>
+</div>
+<div class="actions">
+<div><p style="color:#888; font-size:13px;"><i class="fas fa-info-circle"></i> "Tratamento em Andamento" é calculado automaticamente a partir dos registros ativos (quantidade que ainda falta usar até o término, diminuindo dia a dia). Edite apenas "Estoque" — o "Disponível" é recalculado automaticamente.</p></div>
+<div>
+<button class="btn btn-success" id="importPdfBtn"><i class="fas fa-file-pdf"></i> Carregar PDF do Soul MV</button>
+<input type="file" id="importPdfInput" accept="application/pdf" style="display:none;">
+<span class="print-orientation"><label for="printOrientationEstoque">Impressão</label>
+<select id="printOrientationEstoque"><option value="portrait">Retrato</option><option value="landscape">Paisagem</option><option value="auto">Escolher ao imprimir</option></select></span>
+<button class="btn btn-primary" id="printStockBtn"><i class="fas fa-print"></i> Imprimir</button>
+<button class="btn btn-danger" id="resetStockBtn"><i class="fas fa-undo"></i> Restaurar valores originais</button>
+</div>
+</div>
+<div class="data-table-container">
+<div class="stock-unmatched-warning" id="stockUnmatchedWarning" style="display:none;"></div>
+<table class="data-table" id="stockTable">
+<thead>
+<tr>
+<th>Cód.</th><th>Antibiótico</th><th>Tratamento em Andamento (amp./comp.)</th><th>Estoque (CAF+Farmácia)</th><th>Disponível?</th>
+</tr>
+</thead>
+<tbody id="stockTableBody">
+<tr data-status="mcritico" data-cod="28"><td>28</td><td>AMICACINA 250MG/ML 2ML</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="3"></td><td><span class="stock-mcritico">3</span></td></tr>
+<tr data-status="normal" data-cod="775"><td>775</td><td>AMPICILINA + SULBACTAM</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="222"></td><td><span class="stock-normal">214</span></td></tr>
+<tr data-status="atencao" data-cod="4875"><td>4875</td><td>ANFOTERICINA B</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">8</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="50"></td><td><span class="stock-atencao">50</span></td></tr>
+<tr data-status="mcritico" data-cod="149"><td>149</td><td>AZITROMICINA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="11"></td><td><span class="stock-mcritico">4</span></td></tr>
+<tr data-status="critico" data-cod="404"><td>404</td><td>BENZILPENICILINA BENZATINA 1200000UI/ML AMPOLA INJETAVEL</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">7</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="32"></td><td><span class="stock-critico">32</span></td></tr>
+<tr data-status="critico" data-cod="153"><td>153</td><td>CEFALEXINA V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="39"></td><td><span class="stock-critico">39</span></td></tr>
+<tr data-status="normal" data-cod="35"><td>35</td><td>CEFALOTINA 1G</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="539"></td><td><span class="stock-normal">539</span></td></tr>
+<tr data-status="mcritico" data-cod="34"><td>34</td><td>CEFAZOLINA 1G</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="0"></td><td><span class="stock-mcritico">0</span></td></tr>
+<tr data-status="mcritico" data-cod="98"><td>98</td><td>CEFEPIMA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="11"></td><td><span class="stock-mcritico">11</span></td></tr>
+<tr data-status="normal" data-cod="319"><td>319</td><td>CEFTAZIDIMA P</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="60"></td><td><span class="stock-normal">60</span></td></tr>
+<tr data-status="atencao" data-cod="31"><td>31</td><td>CEFTRIAXONA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">38</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="441"></td><td><span class="stock-atencao">403</span></td></tr>
+<tr data-status="normal" data-cod="3001"><td>3001</td><td>CEFUROXIMA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">3</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="568"></td><td><span class="stock-normal">565</span></td></tr>
+<tr data-status="normal" data-cod="392"><td>392</td><td>CIPROFLOXACINO 200MG</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="270"></td><td><span class="stock-normal">270</span></td></tr>
+<tr data-status="normal" data-cod="103"><td>103</td><td>CIPROFLOXACINO 400MG</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="137"></td><td><span class="stock-normal">137</span></td></tr>
+<tr data-status="normal" data-cod="152"><td>152</td><td>CIPROFLOXACINO 500MG V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="121"></td><td><span class="stock-normal">121</span></td></tr>
+<tr data-status="normal" data-cod="1063"><td>1063</td><td>CLINDAMICINA 300MG V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="302"></td><td><span class="stock-normal">302</span></td></tr>
+<tr data-status="normal" data-cod="27"><td>27</td><td>CLINDAMICINA 150 MG/ML EV</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">73</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="978"></td><td><span class="stock-normal">905</span></td></tr>
+<tr data-status="atencao" data-cod="414"><td>414</td><td>FLUCONAZOL 150MG V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="74"></td><td><span class="stock-atencao">74</span></td></tr>
+<tr data-status="atencao" data-cod="90"><td>90</td><td>FLUCONAZOL 200MG E.V</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="81"></td><td><span class="stock-atencao">81</span></td></tr>
+<tr data-status="normal" data-cod="47"><td>47</td><td>GENTAMICINA 40MG/ML</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="200"></td><td><span class="stock-normal">200</span></td></tr>
+<tr data-status="normal" data-cod="845"><td>845</td><td>GENTAMICINA 80MG/2ML</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="452"></td><td><span class="stock-normal">452</span></td></tr>
+<tr data-status="atencao" data-cod="151"><td>151</td><td>LEVOFLOXACINO 500MG V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="54"></td><td><span class="stock-atencao">54</span></td></tr>
+<tr data-status="critico" data-cod="87"><td>87</td><td>LEVOFLOXACINO 500MG/100ML</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="30"></td><td><span class="stock-critico">30</span></td></tr>
+<tr data-status="critico" data-cod="73"><td>73</td><td>MEROPENEM 1G</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">51</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="291"></td><td><span class="stock-critico">240</span></td></tr>
+<tr data-status="normal" data-cod="1135"><td>1135</td><td>METRONIDAZOL 250MG V.O</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="194"></td><td><span class="stock-normal">194</span></td></tr>
+<tr data-status="atencao" data-cod="88"><td>88</td><td>METRONIDAZOL EV</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">12</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="76"></td><td><span class="stock-atencao">64</span></td></tr>
+<tr data-status="normal" data-cod="521"><td>521</td><td>OXACILINA 500MG</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="429"></td><td><span class="stock-normal">429</span></td></tr>
+<tr data-status="normal" data-cod="394"><td>394</td><td>PIPERACILINA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">68</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="701"></td><td><span class="stock-normal">633</span></td></tr>
+<tr data-status="normal" data-cod="89"><td>89</td><td>POLIMIXINA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="128"></td><td><span class="stock-normal">128</span></td></tr>
+<tr data-status="atencao" data-cod="150"><td>150</td><td>SULFAMETOXAZOL 400MG</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">0</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="87"></td><td><span class="stock-atencao">88</span></td></tr>
+<tr data-status="atencao" data-cod="385"><td>385</td><td>TEICOPLANINA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">8</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="70"></td><td><span class="stock-atencao">62</span></td></tr>
+<tr data-status="normal" data-cod="86"><td>86</td><td>VANCOMICINA</td><td><span class="stock-tratamento-value" title="Calculado automaticamente a partir dos tratamentos ativos">40</span></td><td><input type="number" class="stock-input stock-estoque" min="0" value="411"></td><td><span class="stock-normal">371</span></td></tr>
+</tbody>
+</table>
+</div>
+<div id="stockEmptyState" class="empty-state" style="display: none;">
+<i class="fas fa-boxes"></i>
+<h3>Nenhum antibiótico encontrado</h3>
+<p>Tente ajustar os filtros de pesquisa.</p>
+</div>
+</div>
+
+<!-- Conteúdo da aba Protocolo de Infusão -->
+<div id="protocolo" class="tab-content">
+<h2>Protocolo de Administração de Antimicrobianos</h2>
+<p>Guia prático de tempo de infusão e métodos de administração para a equipe assistencial.</p>
+<div class="filters">
+<div class="filter-group">
+<label for="protocolo-search">Pesquisar Antimicrobiano</label>
+<input type="text" id="protocolo-search" placeholder="Digite o nome do antimicrobiano...">
+</div>
+</div>
+<div class="data-table-container">
+<table class="data-table" id="protocolTable">
+<thead>
+<tr>
+<th>Antimicrobiano &amp; Dose</th><th>Tempo de Infusão e Observações</th><th>Método de Infusão</th><th>Uso de BIC?</th>
+</tr>
+</thead>
+<tbody id="protocolTableBody">
+<tr><td><strong>Amicacina</strong> 250 mg/mL (2 mL)</td><td>30 a 60 minutos</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Ampicilina + Sulbactam</strong> 2g + 1g</td><td>Bolus lento: 3-5 min | Infusão: 15-30 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Anfotericina B</strong> 50 mg</td><td>2 horas (pode reduzir p/ 1h se bem tolerado). Se &gt; 5 mg/kg/dia, manter 2h.</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Cefalotina</strong> 1g</td><td>Bolus lento: 3-5 min | Intermitente: 30-60 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Cefazolina</strong> 1g</td><td>Bolus lento: 3-5 min | Intermitente: 30-60 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Cefepima</strong> 1g</td><td>Bolus lento: 3-5 min | Intermitente: 30-60 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Ceftriaxona</strong> 1g</td><td>Bolus lento: 3-5 min | Intermitente: 30-60 min. ⚡ Infusão prolongada (3h) em pacientes críticos (tempo-dependente).</td><td>Bolus / Intermitente</td><td class="bic-yes">Sim</td></tr>
+<tr><td><strong>Cefuroxima</strong> 750 mg</td><td>Bolus lento: 3-5 min | Intermitente: 15-30 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Ciprofloxacino</strong> 200/400mg/100mL</td><td>Intermitente: 60 minutos</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Clindamicina</strong> 150 mg/mL</td><td>10 a 60 minutos (⚠ Máx: 30 mg/min e 1.200 mg/hora)</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Fluconazol</strong> 200 mg/mL</td><td>60 minutos (⚠ Máx: 10 mL/min)</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Gentamicina</strong> 80 mg (2 mL)</td><td>30 min a 2 horas (Sem diluição: 2 a 3 min)</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Levofloxacino</strong> 500/750 mg</td><td>500 mg: 60 min | 750 mg: 90 min</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Meropenem</strong> 1g</td><td>Bolus lento: 3-5 min | Intermitente: 15-30 min. ⚡ Infusão prolongada (3h) em pacientes críticos (tempo-dependente).</td><td>Bolus / Intermitente</td><td class="bic-yes">Sim</td></tr>
+<tr><td><strong>Metronidazol</strong> 500 mg/100 mL</td><td>&gt; 20 a 60 minutos</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Oxacilina</strong> 500 mg/mL</td><td>CICC: 30 min | AVP: 60 min</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Piperacilina + Tazobactam</strong> 4g + 0,5g</td><td>30-60 min. ⚡ Infusão prolongada (4h) - Uso off-label.</td><td>Infusão Intermitente</td><td class="bic-yes">Sim</td></tr>
+<tr><td><strong>Polimixina B</strong> 500.000 UI</td><td>60 a 120 minutos</td><td>Infusão Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Teicoplanina</strong> 400 mg</td><td>Bolus lento: 3-5 min | Infusão: 30 min</td><td>Bolus / Intermitente</td><td class="bic-no">Não</td></tr>
+<tr><td><strong>Vancomicina</strong> 500 mg</td><td>60 a 120 minutos (⚠ Não ultrapassar 10 mg/minuto)</td><td>Infusão Intermitente</td><td class="bic-yes">Sim</td></tr>
+</tbody>
+</table>
+</div>
+<div id="protocolEmptyState" class="empty-state" style="display: none;">
+<i class="fas fa-syringe"></i>
+<h3>Nenhum antimicrobiano encontrado</h3>
+<p>Tente ajustar o termo de pesquisa.</p>
+</div>
+<div class="protocol-note">
+<strong>Legenda:</strong> Bolus Lento: dose única concentrada na veia, de forma gradual (2 a 5 min). Infusão Intermitente: aplicação em períodos definidos com intervalos de pausa. BIC: Bomba de Infusão Contínua | AVP: Acesso Venoso Periférico | CICC: Cateter Central de Inserção Central.
+<br><br>
+<strong>Atenção importante:</strong> Em pacientes com função renal prejudicada, é necessário fazer ajustes na dose. Em caso de dúvidas, consulte um farmacêutico clínico ou hospitalar.
+</div>
+</div>
+
+<!-- Conteúdo da aba Relatórios -->
+<div id="relatorios" class="tab-content">
+<h2>Relatórios e Estatísticas</h2>
+<p id="reportIntro">Consumo de antibióticos calculado automaticamente a partir dos registros da aba <strong>Registros</strong>.</p>
+
+<div class="filters rep-filters">
+<div class="filter-group">
+<label for="reportPeriodType">Período</label>
+<select id="reportPeriodType">
+<option value="day">Diário</option>
+<option value="month" selected>Mensal</option>
+<option value="year">Anual</option>
+</select>
+</div>
+<div class="filter-group rep-period-group">
+<label for="relatorio-periodo" id="reportPeriodLabel">Mês de referência</label>
+<div class="rep-period-nav">
+<button type="button" class="rep-nav-btn" id="reportPeriodPrev" title="Período anterior"><i class="fas fa-chevron-left"></i></button>
+<input type="month" id="relatorio-periodo">
+<button type="button" class="rep-nav-btn" id="reportPeriodNext" title="Próximo período"><i class="fas fa-chevron-right"></i></button>
+<button type="button" class="rep-nav-btn rep-nav-today" id="reportPeriodToday" title="Voltar para o período atual">Hoje</button>
+</div>
+</div>
+<div class="filter-group">
+<label>Setor</label>
+<div class="ms" id="msSetor">
+<button type="button" class="ms-btn"><span class="ms-text">Todos os setores</span><i class="fas fa-chevron-down"></i></button>
+<div class="ms-panel"></div>
+</div>
+</div>
+<div class="filter-group">
+<label>Antibióticos</label>
+<div class="ms" id="msMeds">
+<button type="button" class="ms-btn"><span class="ms-text">Todos os antibióticos</span><i class="fas fa-chevron-down"></i></button>
+<div class="ms-panel"></div>
+</div>
+</div>
+<div class="filter-group">
+<label for="reportCountMode">Contar consumo por</label>
+<select id="reportCountMode">
+<option value="inicio">Início do tratamento</option>
+<option value="uso">Dias de uso</option>
+</select>
+</div>
+<div class="rep-filter-summary">
+<span id="reportFilterSummary"></span>
+<button type="button" class="rep-clear-btn" id="reportClearFilters"><i class="fas fa-eraser"></i> Limpar filtros de setor e antibióticos</button>
+</div>
+</div>
+
+<div class="dashboard-cards rep-cards">
+<div class="card">
+<div class="card-header">
+<div class="card-title">Antibiótico Mais Utilizado</div>
+<div class="card-icon blue"><i class="fas fa-pills"></i></div>
+</div>
+<div class="card-value" id="reportTopMed">—</div>
+<div class="card-description" id="reportTopMedDesc">Sem dados no período</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Via Mais Utilizada</div>
+<div class="card-icon green"><i class="fas fa-syringe"></i></div>
+</div>
+<div class="card-value" id="reportTopVia">—</div>
+<div class="card-description" id="reportTopViaDesc">Sem dados no período</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title" id="reportTrendTitle">Tendência Mensal</div>
+<div class="card-icon orange"><i class="fas fa-chart-line"></i></div>
+</div>
+<div class="card-value" id="reportTrend">—</div>
+<div class="card-description" id="reportTrendDesc">Comparado ao mês anterior</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Total Consumido</div>
+<div class="card-icon red"><i class="fas fa-boxes-stacked"></i></div>
+</div>
+<div class="card-value" id="reportTotal">—</div>
+<div class="card-description" id="reportTotalDesc">Sem dados no período</div>
+</div>
+<div class="card">
+<div class="card-header">
+<div class="card-title">Pacientes</div>
+<div class="card-icon blue"><i class="fas fa-user-injured"></i></div>
+</div>
+<div class="card-value" id="reportPatients">—</div>
+<div class="card-description" id="reportPatientsDesc">Sem dados no período</div>
+</div>
+</div>
+<div class="actions">
+<div>
+<span class="print-orientation"><label for="printOrientationRelatorios">Impressão</label>
+<select id="printOrientationRelatorios"><option value="auto" selected>Escolher ao imprimir</option><option value="portrait">Retrato</option><option value="landscape">Paisagem</option></select></span>
+<button class="btn btn-primary" id="reportMonthlyBtn"><i class="fas fa-download"></i> <span id="reportPrintLabel">Relatório Mensal</span></button>
+<button class="btn btn-success" id="reportExportBtn"><i class="fas fa-file-excel"></i> Exportar para Excel</button>
+</div>
+</div>
+
+<h3 class="rep-section-title">Consumo por Antibiótico</h3>
+<div class="data-table-container">
+<table class="data-table" id="reportTable">
+<thead>
+<tr><th>Antibiótico</th><th>Quantidade</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<h3 class="rep-section-title">Consumo por Antibiótico em cada Setor</h3>
+<div class="data-table-container">
+<table class="data-table rep-small-table rep-matrix" id="reportSectorTable">
+<thead></thead>
+<tbody></tbody>
+<tfoot></tfoot>
+</table>
+</div>
+
+<h3 class="rep-section-title" id="reportTimelineTitle">Evolução no período</h3>
+<div class="rep-timeline-card" style="margin-bottom: 20px;"><div class="rep-timeline" id="reportTimeline"></div></div>
+
+<h2 style="margin-top: 30px;">Comparativo entre Meses</h2>
+<p>Compare o consumo (em unidades) de cada antibiótico ao longo de um intervalo de meses. Respeita os filtros de setor, antibióticos e o critério de contagem escolhidos acima.</p>
+<div class="filters" style="grid-template-columns: repeat(3, minmax(160px, 220px));">
+<div class="filter-group">
+<label for="compareStart">De</label>
+<input type="month" id="compareStart">
+</div>
+<div class="filter-group">
+<label for="compareEnd">Até</label>
+<input type="month" id="compareEnd">
+</div>
+</div>
+<div class="data-table-container">
+<table class="data-table" id="compareTable">
+<thead><tr></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+
+<!-- Conteúdo da aba Configurações -->
+<div id="configuracoes" class="tab-content">
+<h2>Configurações do Sistema</h2>
+<p>Configure as preferências e parâmetros do sistema.</p>
+
+<div class="config-grid">
+
+<div class="config-card">
+<div class="config-card-header">
+<div class="card-icon blue"><i class="fas fa-hospital"></i></div>
+<div>
+<h3>Identificação</h3>
+<p>Nome exibido no cabeçalho e nos relatórios</p>
+</div>
+</div>
+<div class="form-group" style="margin-bottom: 0;">
+<label for="system-name">Nome do Hospital</label>
+<input type="text" id="system-name" value="AC - Sistemas e Soluções">
+</div>
+</div>
+
+<div class="config-card">
+<div class="config-card-header">
+<div class="card-icon orange"><i class="fas fa-bell"></i></div>
+<div>
+<h3>Notificações</h3>
+<p>Escolha o que o sistema deve avisar</p>
+</div>
+</div>
+<label class="notify-option">
+<input type="checkbox" id="notifyExpiration" checked>
+<span class="notify-text">
+<span class="notify-title">Tratamentos próximos do vencimento</span>
+<span class="notify-desc">Avisa quando um tratamento está perto do término</span>
+</span>
+</label>
+<label class="notify-option">
+<input type="checkbox" id="notifyInteractions" checked>
+<span class="notify-text">
+<span class="notify-title">Interações medicamentosas</span>
+<span class="notify-desc">Alerta sobre combinações de risco entre antibióticos</span>
+</span>
+</label>
+<label class="notify-option">
+<input type="checkbox" id="notifyProtocols">
+<span class="notify-text">
+<span class="notify-title">Novos protocolos</span>
+<span class="notify-desc">Notifica quando um protocolo é atualizado</span>
+</span>
+</label>
+</div>
+
+<div class="config-card config-card-full">
+<div class="config-card-header">
+<div class="card-icon red"><i class="fas fa-database"></i></div>
+<div>
+<h3>Backup e Restauração</h3>
+<p>Os dados já ficam na nuvem (Firebase) e sincronizam entre dispositivos — o backup é uma camada extra de segurança</p>
+</div>
+</div>
+
+<div class="backup-warning">
+<i class="fas fa-circle-info"></i>
+<div>
+<strong>Como funciona agora:</strong> os registros ficam salvos em um banco de dados na nuvem (Firebase) e aparecem automaticamente em qualquer computador em que você fizer login. Ainda assim, vale gerar backups periódicos: eles te protegem contra exclusões acidentais em massa, erros de digitação em lote ou qualquer problema na conta do Firebase.
+</div>
+</div>
+
+<div class="backup-status">
+<span class="backup-status-label">Último backup realizado:</span>
+<span class="backup-status-value" id="lastBackupValue">Nenhum backup realizado ainda</span>
+<span class="backup-badge never" id="lastBackupBadge">Sem backup</span>
+</div>
+
+<div class="actions" style="margin-bottom: 18px;">
+<div>
+<button class="btn btn-primary" id="backupBtn"><i class="fas fa-database"></i> Realizar Backup Agora</button>
+<button class="btn btn-success" id="restoreBtn"><i class="fas fa-history"></i> Restaurar Backup</button>
+<input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+</div>
+</div>
+
+<ul class="config-tips">
+<li><i class="fas fa-check"></i> Faça o backup <strong>toda semana</strong>, ou logo após um dia com muitos registros novos.</li>
+<li><i class="fas fa-check"></i> Salve o arquivo .json baixado em um local separado: Google Drive, OneDrive, ou uma pasta compartilhada do hospital.</li>
+<li><i class="fas fa-check"></i> Mantenha mais de uma cópia e não apague backups antigos imediatamente — guarde pelo menos os 3 últimos.</li>
+<li><i class="fas fa-check"></i> Restaurar um backup substitui <strong>todos</strong> os registros atuais — em todos os dispositivos conectados, pois o dado é compartilhado.</li>
+<li><i class="fas fa-check"></i> O login com e-mail/senha já protege o acesso; evite compartilhar sua senha e cadastre um usuário por pessoa responsável.</li>
+</ul>
+</div>
+
+<div class="config-card config-card-full">
+<div class="config-card-header">
+<div class="card-icon blue"><i class="fas fa-list-check"></i></div>
+<div>
+<h3>Padronização de Medicamentos</h3>
+<p>Atualiza em lote os registros antigos cujo nome de medicamento não bate com a lista fixa usada no cadastro</p>
+</div>
+</div>
+<div class="backup-warning">
+<i class="fas fa-circle-info"></i>
+<div>
+Faça um backup antes de rodar essa ferramenta. Recomendado gerar um backup (botão acima) antes de aplicar mudanças em lote.
+</div>
+</div>
+<div class="actions" style="margin-bottom: 0;">
+<button class="btn btn-primary" id="checkMedMismatchBtn"><i class="fas fa-magnifying-glass"></i> Verificar Registros Divergentes</button>
+</div>
+</div>
+
+</div>
+
+<div class="actions" style="margin-top: 20px;">
+<button class="btn btn-success" id="saveConfigBtn"><i class="fas fa-save"></i> Salvar Configurações</button>
+<button class="btn btn-danger" id="cancelConfigBtn"><i class="fas fa-times"></i> Cancelar</button>
+</div>
+</div>
+
+<footer>Sistema de Controle de Antibióticos - AC - Sistemas e Soluções &copy; 2025</footer>
+</div>
+
+<!-- Modal para adicionar/editar registros -->
+<div class="modal" id="recordModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 id="modalTitle">Novo Registro de Antibiótico</h2>
+<button class="close" id="closeModal">&times;</button>
+</div>
+<div class="modal-body">
+<div class="form-row">
+<div class="form-group">
+<label for="inputData">Data de Registro</label>
+<input type="date" id="inputData">
+</div>
+<div class="form-group">
+<label for="inputSetor">Setor</label>
+<select id="inputSetor">
+<option value="">Selecione...</option>
+<option value="1º Andar">1º Andar</option>
+<option value="2º Andar">2º Andar</option>
+<option value="3º Andar">3º Andar</option>
+<option value="UTI">UTI</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label for="inputPaciente">Paciente</label>
+<input type="text" id="inputPaciente" placeholder="Nome do Paciente">
+</div>
+<div class="form-row">
+<div class="form-group">
+<label for="inputMedicamentoSearch">Medicamento</label>
+<div class="med-select-wrapper">
+<input type="text" id="inputMedicamentoSearch" placeholder="Digite para buscar o medicamento..." autocomplete="off">
+<input type="hidden" id="inputMedicamento">
+<div class="med-dropdown" id="medDropdown"></div>
+</div>
+<span class="form-hint">Selecione um item da lista. Não é possível cadastrar um medicamento fora da lista.</span>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label for="inputVia">Via de Administração</label>
+<select id="inputVia">
+<option value="Oral">Oral</option>
+<option value="Venosa">Venosa</option>
+<option value="Intramuscular">Intramuscular</option>
+<option value="Topica">Tópica</option>
+<option value="Inalatoria">Inalatória</option>
+</select>
+</div>
+<div class="form-group">
+<label for="inputDosagem">Dosagem</label>
+<input type="text" id="inputDosagem" placeholder="Ex: 500mg">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label for="inputTratamento">Tratamento</label>
+<select id="inputTratamento">
+<option value="">Selecione...</option>
+<option value="Profilático">Profilático</option>
+<option value="Terapêutico">Terapêutico</option>
+<option value="Terapêutico Empírico">Terapêutico Empírico</option>
+<option value="Terapêutico Guiado por Cultura">Terapêutico Guiado por Cultura</option>
+</select>
+</div>
+<div class="form-group">
+<label for="inputPosologia">Posologia</label>
+<select id="inputPosologia">
+<option value="">Selecione...</option>
+<option value="24/24h">24/24h</option>
+<option value="12/12h">12/12h</option>
+<option value="8/8h">8/8h</option>
+<option value="6/6h">6/6h</option>
+<option value="4/4h">4/4h</option>
+<option value="3/3h">3/3h</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label for="inputInicio">Data de Início</label>
+<input type="date" id="inputInicio">
+</div>
+<div class="form-group">
+<label for="inputDuracao">Duração (dias)</label>
+<input type="number" id="inputDuracao" placeholder="Duração em dias" min="1">
+<span class="form-hint" id="terminoPreview"></span>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label for="inputAmpolaDiaria">Ampola/Comprimido por dia</label>
+<input type="number" id="inputAmpolaDiaria" placeholder="Quantidade diária" min="0.5" step="0.5">
+</div>
+<div class="form-group">
+<label for="inputTotalAmpolas">Total de Ampolas/Comprimidos</label>
+<input type="number" id="inputTotalAmpolas" placeholder="Quantidade total" min="1" readonly>
+</div>
+</div>
+<div class="form-group">
+<label for="inputStatus">Status</label>
+<select id="inputStatus">
+<option value="Ativo">Ativo</option>
+<option value="Finalizado">Finalizado</option>
+<option value="Suspenso">Suspenso</option>
+</select>
+</div>
+<div class="form-actions">
+<button class="btn btn-danger" id="cancelBtn">Cancelar</button>
+<button class="btn btn-success" id="saveBtn">Salvar</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="notification" id="notification"></div>
+</div>
+
+<div class="modal" id="medMigrationModal">
+<div class="modal-content" style="max-width: 700px;">
+<div class="modal-header">
+<h2>Padronizar Nomes de Medicamentos</h2>
+<span class="close" id="closeMedMigrationModal">&times;</span>
+</div>
+<div id="medMigrationBody" style="padding: 5px 0;">
+<!-- preenchido via JS -->
+</div>
+<div class="form-actions">
+<button class="btn btn-danger" id="cancelMedMigrationBtn">Cancelar</button>
+<button class="btn btn-success" id="applyMedMigrationBtn">Aplicar Alterações</button>
+</div>
+</div>
+</div>
+
+<script type="module">
+'use strict';
+
+/* ==========================================================================
+   FIREBASE — INICIALIZAÇÃO
+   ========================================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDRerdxDX1U35mO--8La0o9FMZB-Yn0AKc",
+  authDomain: "controle-de-antibiotico.firebaseapp.com",
+  projectId: "controle-de-antibiotico",
+  storageBucket: "controle-de-antibiotico.firebasestorage.app",
+  messagingSenderId: "1086538885033",
+  appId: "1:1086538885033:web:1896553ebd21020fe146b8",
+  measurementId: "G-JJN2CLTC3X"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+const recordsCollection = collection(db, 'records');
+const stockCollection = collection(db, 'stock');
+const configDocRef = doc(db, 'config', 'system');
+
+// Guarda as funções "unsubscribe" dos listeners em tempo real, para poder
+// desligá-los ao fazer logout (evita erros de permissão após sair).
+let unsubscribeRecords = null;
+let unsubscribeStock = null;
+let unsubscribeConfig = null;
+let firestoreListenersStarted = false;
+let uiInitialized = false;
+
+/* ==========================================================================
+   DADOS EM MEMÓRIA (populados via Firestore em tempo real)
+   ========================================================================== */
+let records = [];
+let currentRecordId = null;
+let currentConfig = { systemName: 'AC - Sistemas e Soluções', notifyExpiration: true, notifyInteractions: true, notifyProtocols: false, lastBackupAt: null, stockReferenceAt: null };
+
+// Paginação
+let currentPage = 1;
+const RECORDS_PER_PAGE = 10;
+
+// Filtro/ordenação estilo Excel por coluna, na tabela de Registros
+const FILTERABLE_COLUMNS = {
+  dataRegistro: { label: 'Data Registro', getValue: r => r.dataRegistro, type: 'date' },
+  setor: { label: 'Setor', getValue: r => r.setor, type: 'text' },
+  paciente: { label: 'Paciente', getValue: r => r.paciente, type: 'text' },
+  medicamento: { label: 'Medicamento', getValue: r => r.medicamento, type: 'text' },
+  via: { label: 'Via', getValue: r => r.via, type: 'text' },
+  tratamento: { label: 'Tratamento', getValue: r => r.tratamento, type: 'text' },
+  status: { label: 'Status', getValue: r => r.status, type: 'text' }
+};
+let columnFilters = {}; // { coluna: Set(valores permitidos) } — coluna ausente = sem filtro
+let columnSort = null;  // { col, direction: 'asc'|'desc' }
+
+/* ==========================================================================
+   AUTENTICAÇÃO
+   ========================================================================== */
+function showLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appContainer').classList.remove('visible');
+}
+
+function showApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContainer').classList.add('visible');
+  document.getElementById('loggedUserEmail').textContent = user.email || 'Farmácia Clínica';
+}
+
+function startFirestoreListeners() {
+  if (firestoreListenersStarted) return;
+  firestoreListenersStarted = true;
+
+  unsubscribeRecords = onSnapshot(recordsCollection, snapshot => {
+    records = snapshot.docs.map(d => d.data());
+    autoFinalizeExpiredTreatments();
+    renderTable();
+    updateDashboard();
+    renderReportsTab();
+    renderComparison();
+    recomputeStockTratamento();
+  }, err => {
+    console.error('Erro ao sincronizar registros:', err);
+    showNotification('Erro ao sincronizar registros com o servidor.', 'error');
+  });
+
+  unsubscribeStock = onSnapshot(stockCollection, snapshot => {
+    applyStockSnapshot(snapshot);
+  }, err => {
+    console.error('Erro ao sincronizar estoque:', err);
+  });
+
+  unsubscribeConfig = onSnapshot(configDocRef, snap => {
+    if (snap.exists()) {
+      currentConfig = { ...currentConfig, ...snap.data() };
+      applyConfig(currentConfig);
+    }
+    updateBackupStatus(snap.exists() ? currentConfig.lastBackupAt : null);
+    updateStockReferenceDate(snap.exists() ? currentConfig.stockReferenceAt : null);
+  }, err => {
+    console.error('Erro ao sincronizar configurações:', err);
+  });
+}
+
+function stopFirestoreListeners() {
+  if (unsubscribeRecords) unsubscribeRecords();
+  if (unsubscribeStock) unsubscribeStock();
+  if (unsubscribeConfig) unsubscribeConfig();
+  unsubscribeRecords = unsubscribeStock = unsubscribeConfig = null;
+  firestoreListenersStarted = false;
+  records = [];
+}
+
+function ensureUiInitialized() {
+  if (uiInitialized) return;
+  uiInitialized = true;
+  setDefaultDates();
+  setupTabNavigation();
+  setupEventListeners();
+  setupFilterListeners();
+  setupColumnFilters();
+  setupStockTab();
+  setupProtocolTab();
+  setupReportsTab();
+  setupConfigTab();
+}
+
+onAuthStateChanged(auth, user => {
+  ensureUiInitialized();
+  if (user) {
+    showApp(user);
+    startFirestoreListeners();
+  } else {
+    stopFirestoreListeners();
+    showLoginScreen();
+    renderTable();
+    updateDashboard();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+  const loginLoading = document.getElementById('loginLoading');
+  const submitBtn = document.getElementById('loginSubmitBtn');
+
+  loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    loginError.classList.remove('show');
+    loginLoading.classList.add('show');
+    submitBtn.disabled = true;
+
+    signInWithEmailAndPassword(auth, email, password)
+      .catch(err => {
+        const messages = {
+          'auth/invalid-credential': 'E-mail ou senha incorretos.',
+          'auth/invalid-email': 'E-mail inválido.',
+          'auth/user-not-found': 'Usuário não encontrado.',
+          'auth/wrong-password': 'Senha incorreta.',
+          'auth/too-many-requests': 'Muitas tentativas. Aguarde um momento e tente novamente.'
+        };
+        loginError.textContent = messages[err.code] || 'Não foi possível entrar. Verifique seus dados e tente novamente.';
+        loginError.classList.add('show');
+      })
+      .finally(() => {
+        loginLoading.classList.remove('show');
+        submitBtn.disabled = false;
+      });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    if (confirm('Deseja realmente sair?')) signOut(auth);
+  });
+
+  setupMedicamentoCombobox();
+  setupMedMigration();
+
+  // Como a quantidade "restante" de cada tratamento depende da data de hoje,
+  // recalcula periodicamente mesmo sem nenhuma alteração nos registros — cobre
+  // o caso de a aba ficar aberta durante a virada do dia, ou de ninguém mexer
+  // no sistema no dia exato em que um tratamento avança/termina.
+  setInterval(() => {
+    if (typeof records !== 'undefined' && records.length) recomputeStockTratamento();
+  }, 15 * 60 * 1000); // a cada 15 minutos
+});
+
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inputData').value = today;
+  document.getElementById('inputInicio').value = today;
+}
+
+/* ==========================================================================
+   NAVEGAÇÃO POR ABAS
+   ========================================================================== */
+function setupTabNavigation() {
+  const tabLinks = document.querySelectorAll('nav a');
+  tabLinks.forEach(link => {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      tabLinks.forEach(tab => tab.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      const tabId = this.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
+      if (tabId === 'relatorios') { renderReportsTab(); renderComparison(); }
+    });
+  });
+}
+
+/* ==========================================================================
+   DASHBOARD
+   ========================================================================== */
+function updateDashboard() {
+  const total = records.length;
+  const active = records.filter(r => r.status === 'Ativo').length;
+  const finished = records.filter(r => r.status === 'Finalizado').length;
+  const review = records.filter(r => r.status === 'Suspenso').length;
+  document.getElementById('totalRecords').textContent = total;
+  document.getElementById('activeTreatments').textContent = active;
+  document.getElementById('finishedTreatments').textContent = finished;
+  document.getElementById('reviewNeeded').textContent = review;
+}
+
+/* ==========================================================================
+   TABELA PRINCIPAL: FILTRO + PAGINAÇÃO + RENDERIZAÇÃO
+   ========================================================================== */
+function getFilteredRecords() {
+  const searchText = document.getElementById('search').value.toLowerCase();
+  const statusFilter = document.getElementById('status').value;
+  const patientFilter = document.getElementById('patient').value.toLowerCase();
+  const dateFilter = document.getElementById('date').value; // formato YYYY-MM-DD
+
+  let result = records.filter(r => {
+    const rowText = Object.values(r).join(' ').toLowerCase();
+    const matchesSearch = !searchText || rowText.includes(searchText);
+    const matchesStatus = !statusFilter || r.status === statusFilter;
+    const matchesPatient = !patientFilter || r.paciente.toLowerCase().includes(patientFilter);
+    const matchesDate = !dateFilter || r.inicio === formatDateForDisplay(dateFilter);
+    return matchesSearch && matchesStatus && matchesPatient && matchesDate;
+  });
+
+  Object.keys(columnFilters).forEach(col => {
+    const allowed = columnFilters[col];
+    if (!allowed || !FILTERABLE_COLUMNS[col]) return;
+    const getValue = FILTERABLE_COLUMNS[col].getValue;
+    result = result.filter(r => allowed.has(getValue(r) || ''));
+  });
+
+  if (columnSort && FILTERABLE_COLUMNS[columnSort.col]) {
+    const { col, direction } = columnSort;
+    const { getValue, type } = FILTERABLE_COLUMNS[col];
+    const mult = direction === 'asc' ? 1 : -1;
+    result = [...result].sort((a, b) => {
+      const va = getValue(a) || '';
+      const vb = getValue(b) || '';
+      if (type === 'date') {
+        const da = parseDateBR(va), db = parseDateBR(vb);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return (da - db) * mult;
+      }
+      return va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' }) * mult;
+    });
+  }
+
+  return result;
+}
+
+function filterTable() {
+  currentPage = 1;
+  renderTable();
+}
+
+/* ==========================================================================
+   FILTRO/ORDENAÇÃO ESTILO EXCEL POR COLUNA (tabela de Registros)
+   ========================================================================== */
+function setupColumnFilters() {
+  const panel = document.getElementById('colFilterPanel');
+
+  document.querySelectorAll('.col-filter-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const col = btn.getAttribute('data-col');
+      if (panel.classList.contains('open') && panel.dataset.col === col) {
+        closeColumnFilterPanel();
+      } else {
+        openColumnFilterPanel(col, btn);
+      }
+    });
+  });
+
+  // Ao arrastar a barra de rolagem da lista de datas, o mouse costuma sair um pouco do
+  // painel antes de soltar. Nesse caso o navegador dispara o "click" no elemento comum
+  // mais próximo (FORA do painel), e o painel fechava. Por isso registramos ONDE o
+  // clique começou: se começou dentro do painel, o "click" resultante é ignorado.
+  let pressStartedInsidePanel = false;
+  document.addEventListener('mousedown', e => {
+    pressStartedInsidePanel = panel.classList.contains('open') && panel.contains(e.target);
+  }, true);
+
+  document.addEventListener('click', e => {
+    if (!panel.classList.contains('open')) return;
+    if (pressStartedInsidePanel) { pressStartedInsidePanel = false; return; }
+    // composedPath garante que um clique dentro do painel não seja tratado como "fora"
+    // mesmo se o elemento clicado tiver sido removido/recriado durante o clique.
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    const clickedInside = path.includes(panel) || panel.contains(e.target);
+    if (!clickedInside && !e.target.closest('.col-filter-btn')) {
+      closeColumnFilterPanel();
+    }
+  });
+
+  // Fecha o painel ao rolar a página/tabela, mas NÃO quando a rolagem acontece dentro do
+  // próprio painel (ex.: a lista de datas do filtro tem barra de rolagem própria).
+  document.getElementById('registros').addEventListener('scroll', e => {
+    if (panel.contains(e.target)) return;
+    closeColumnFilterPanel();
+  }, true);
+}
+
+function closeColumnFilterPanel() {
+  const panel = document.getElementById('colFilterPanel');
+  panel.classList.remove('open');
+  panel.innerHTML = '';
+  document.querySelectorAll('.col-filter-btn.active').forEach(b => {
+    if (!columnFilters[b.getAttribute('data-col')]) b.classList.remove('active');
+  });
+}
+
+function openColumnFilterPanel(col, anchorBtn) {
+  const panel = document.getElementById('colFilterPanel');
+  const config = FILTERABLE_COLUMNS[col];
+  if (!config) return;
+
+  // Universo de valores considera os demais filtros já ativos (exceto o desta coluna),
+  // para a lista de opções não incluir valores que já ficariam vazios de qualquer forma.
+  const otherFiltersApplied = records.filter(r => {
+    return Object.keys(columnFilters).every(c => {
+      if (c === col) return true;
+      const allowed = columnFilters[c];
+      if (!allowed || !FILTERABLE_COLUMNS[c]) return true;
+      return allowed.has(FILTERABLE_COLUMNS[c].getValue(r) || '');
+    });
+  });
+
+  const uniqueValues = [...new Set(otherFiltersApplied.map(r => config.getValue(r) || '').filter(v => v !== ''))];
+  uniqueValues.sort((a, b) => {
+    if (config.type === 'date') {
+      const da = parseDateBR(a), db = parseDateBR(b);
+      if (da && db) return da - db;
+    }
+    return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+  });
+
+  const currentlySelected = columnFilters[col] || new Set(uniqueValues);
+  const sortLabels = config.type === 'date'
+    ? ['Mais antigos primeiro', 'Mais recentes primeiro']
+    : ['Classificar A → Z', 'Classificar Z → A'];
+
+  panel.innerHTML = `
+    <button class="cf-sort-btn" data-dir="asc"><i class="fas fa-arrow-up-short-wide"></i> ${sortLabels[0]}</button>
+    <button class="cf-sort-btn" data-dir="desc"><i class="fas fa-arrow-down-wide-short"></i> ${sortLabels[1]}</button>
+    <hr>
+    <input type="text" class="cf-search" placeholder="Pesquisar...">
+    <div class="cf-option" style="font-weight:600; border-bottom:1px solid #eee; margin-bottom:4px;">
+      <input type="checkbox" id="cfSelectAll" ${currentlySelected.size === uniqueValues.length ? 'checked' : ''}>
+      <label for="cfSelectAll">(Selecionar tudo)</label>
+    </div>
+    <div class="cf-list">${uniqueValues.map((v, i) => `
+      <div class="cf-option">
+        <input type="checkbox" id="cfOpt${i}" value="${escapeHtml(v)}" ${currentlySelected.has(v) ? 'checked' : ''}>
+        <label for="cfOpt${i}">${escapeHtml(v)}</label>
+      </div>`).join('')}</div>
+    <div class="cf-actions">
+      <button class="cf-cancel">Cancelar</button>
+      <button class="cf-apply">OK</button>
+    </div>`;
+
+  panel.dataset.col = col;
+  panel.classList.add('open');
+
+  const btnRect = anchorBtn.getBoundingClientRect();
+  panel.style.top = `${window.scrollY + btnRect.bottom + 4}px`;
+  let left = window.scrollX + btnRect.left;
+  if (left + 240 > window.scrollX + document.documentElement.clientWidth) {
+    left = window.scrollX + document.documentElement.clientWidth - 250;
+  }
+  panel.style.left = `${left}px`;
+
+  panel.querySelectorAll('.cf-sort-btn').forEach(sortBtn => {
+    sortBtn.addEventListener('click', () => {
+      columnSort = { col, direction: sortBtn.getAttribute('data-dir') };
+      closeColumnFilterPanel();
+      renderTable();
+    });
+  });
+
+  panel.querySelector('.cf-search').addEventListener('input', function () {
+    const term = this.value.toLowerCase();
+    panel.querySelectorAll('.cf-list .cf-option').forEach(opt => {
+      const label = opt.querySelector('label').textContent.toLowerCase();
+      opt.style.display = label.includes(term) ? '' : 'none';
+    });
+  });
+
+  panel.querySelector('#cfSelectAll').addEventListener('change', function () {
+    panel.querySelectorAll('.cf-list input[type="checkbox"]').forEach(cb => { cb.checked = this.checked; });
+  });
+
+  panel.querySelector('.cf-cancel').addEventListener('click', closeColumnFilterPanel);
+
+  panel.querySelector('.cf-apply').addEventListener('click', () => {
+    const checked = Array.from(panel.querySelectorAll('.cf-list input[type="checkbox"]:checked')).map(cb => cb.value);
+    if (checked.length === uniqueValues.length) {
+      delete columnFilters[col];
+    } else {
+      columnFilters[col] = new Set(checked);
+    }
+    anchorBtn.classList.toggle('active', !!columnFilters[col]);
+    closeColumnFilterPanel();
+    currentPage = 1;
+    renderTable();
+  });
+}
+
+function renderTable() {
+  autoFinalizeExpiredTreatments();
+
+  const tableBody = document.getElementById('tableBody');
+  const emptyState = document.getElementById('emptyState');
+  const mainTable = document.getElementById('mainTable');
+
+  const filtered = getFilteredRecords();
+
+  if (filtered.length === 0) {
+    tableBody.innerHTML = '';
+    emptyState.style.display = 'block';
+    mainTable.style.display = 'none';
+    renderPagination(0, 0);
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  mainTable.style.display = 'table';
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / RECORDS_PER_PAGE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * RECORDS_PER_PAGE;
+  const pageRecords = filtered.slice(start, start + RECORDS_PER_PAGE);
+
+  tableBody.innerHTML = '';
+  pageRecords.forEach(record => {
+    const row = document.createElement('tr');
+
+    let statusClass = 'status-inactive';
+    if (record.status === 'Ativo') statusClass = 'status-active';
+    if (record.status === 'Finalizado') statusClass = 'status-finalizado';
+
+    const diasRestantes = calculateRemainingDays(record.termino);
+    let diasRestantesHtml;
+    if (record.status !== 'Ativo') {
+      diasRestantesHtml = `<span>-</span>`;
+    } else if (diasRestantes > 3) {
+      diasRestantesHtml = `<span class="days-normal">${diasRestantes} dias</span>`;
+    } else if (diasRestantes > 0) {
+      diasRestantesHtml = `<span class="days-warning">${diasRestantes} dias</span>`;
+    } else if (diasRestantes === 0) {
+      diasRestantesHtml = `<span class="days-warning">Vence Hoje</span>`;
+    } else {
+      diasRestantesHtml = `<span class="days-warning">Expirado</span>`;
+    }
+
+    row.innerHTML = `
+      <td class="col-id-hidden">${escapeHtml(record.id)}</td>
+      <td>${escapeHtml(record.dataRegistro)}</td>
+      <td>${escapeHtml(record.setor)}</td>
+      <td>${escapeHtml(record.paciente)}</td>
+      <td>${escapeHtml(record.medicamento)}</td>
+      <td>${escapeHtml(record.via)}</td>
+      <td>${escapeHtml(record.dosagem)}</td>
+      <td>${escapeHtml(record.tratamento || '')}</td>
+      <td>${escapeHtml(record.posologia)}</td>
+      <td>${escapeHtml(record.inicio)}</td>
+      <td>${escapeHtml(record.duracao)}</td>
+      <td>${escapeHtml(record.termino)}</td>
+      <td>${diasRestantesHtml}</td>
+      <td>${escapeHtml(record.ampolaDiaria)}</td>
+      <td>${escapeHtml(record.totalAmpolas)}</td>
+      <td><span class="status ${statusClass}">${escapeHtml(record.status)}</span></td>
+      <td>
+        <div class="action-buttons">
+          <button class="action-btn edit-btn" data-id="${escapeHtml(record.id)}" title="Editar"><i class="fas fa-edit"></i></button>
+          <button class="action-btn delete-btn" data-id="${escapeHtml(record.id)}" title="Excluir"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>`;
+    tableBody.appendChild(row);
+  });
+
+  // Delegação de eventos: listeners presos apenas à tabela de registros,
+  // evitando conflito com botões de mesma classe em outras abas.
+  tableBody.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => editRecord(e.currentTarget.getAttribute('data-id')));
+  });
+  tableBody.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', e => deleteRecord(e.currentTarget.getAttribute('data-id')));
+  });
+
+  renderPagination(totalPages, filtered.length);
+}
+
+function renderPagination(totalPages, totalRecords) {
+  const container = document.getElementById('pagination');
+  container.innerHTML = '';
+  if (totalPages === 0) return;
+
+  const info = document.createElement('span');
+  info.className = 'pagination-info';
+  info.textContent = `${totalRecords} registro(s) — página ${currentPage} de ${totalPages}`;
+  container.appendChild(info);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.innerHTML = '&laquo;';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => { currentPage--; renderTable(); });
+  container.appendChild(prevBtn);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const pageBtn = document.createElement('button');
+    pageBtn.textContent = i;
+    if (i === currentPage) pageBtn.classList.add('active');
+    pageBtn.addEventListener('click', () => { currentPage = i; renderTable(); });
+    container.appendChild(pageBtn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.innerHTML = '&raquo;';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => { currentPage++; renderTable(); });
+  container.appendChild(nextBtn);
+}
+
+/* ==========================================================================
+   CÁLCULOS DE DATA
+   ========================================================================== */
+function calculateRemainingDays(endDateString) {
+  const parts = endDateString.split('/');
+  if (parts.length !== 3) return 0;
+  const endDate = new Date(parts[2], parts[1] - 1, parts[0]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffTime = endDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+// Verdadeiro somente quando a data de término já passou (estritamente antes de hoje).
+// Diferente de calculateRemainingDays, distingue "hoje é o último dia" de "já venceu".
+function isTreatmentExpired(endDateString) {
+  const parts = endDateString.split('/');
+  if (parts.length !== 3) return false;
+  const endDate = new Date(parts[2], parts[1] - 1, parts[0]);
+  endDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return endDate < today;
+}
+
+// Calcula quantas ampolas/comprimidos AINDA FALTAM ser usadas num tratamento,
+// contando a partir de hoje até a Data de Término (inclusive) — e não o total
+// do tratamento inteiro. Assim, a reserva no Estoque vai diminuindo dia a dia
+// conforme o tratamento avança, em vez de ficar fixa do início ao fim.
+// - Tratamento que ainda não começou: reserva a quantidade total (todos os dias).
+// - Tratamento já vencido (mas ainda não finalizado no sistema): reserva 0.
+function calculateRemainingQuantity(record) {
+  const ampolaDiaria = Number(record.ampolaDiaria) || 0;
+  const inicio = parseDateBR(record.inicio);
+  const termino = parseDateBR(record.termino);
+  if (!ampolaDiaria || !inicio || !termino) return Number(record.totalAmpolas) || 0;
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const UM_DIA_MS = 24 * 60 * 60 * 1000;
+
+  // A "Data de Término" já é calculada como início + duração (ver calculateEndDate),
+  // ou seja, término - hoje já representa exatamente quantos dias de dose faltam a
+  // partir de hoje (sem precisar somar +1). Antes do início, conta-se a partir do
+  // início (dá o total do tratamento); depois do término, zera.
+  const referencia = hoje < inicio ? inicio : hoje;
+  const diasRestantes = Math.round((termino - referencia) / UM_DIA_MS);
+  return ampolaDiaria * Math.max(diasRestantes, 0);
+}
+
+// Corrige automaticamente tratamentos "Ativo" cuja data de término já passou,
+// marcando-os como "Finalizado". Roda a cada atualização recebida do Firestore,
+// cobrindo o caso da aba ficar aberta e a data virar durante a sessão.
+function autoFinalizeExpiredTreatments() {
+  let changed = false;
+  records.forEach(record => {
+    if (record.status === 'Ativo' && isTreatmentExpired(record.termino)) {
+      record.status = 'Finalizado';
+      changed = true;
+      setDoc(doc(recordsCollection, record.id), record).catch(err => {
+        console.error('Erro ao auto-finalizar tratamento:', err);
+      });
+    }
+  });
+  return changed;
+}
+
+function calculateEndDate(startDate, days) {
+  const date = new Date(startDate);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
+
+function formatDateForDisplay(dateString) {
+  if (!dateString) return '';
+  if (dateString.includes('/')) return dateString;
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateForInput(dateString) {
+  if (!dateString) return '';
+  if (!dateString.includes('/')) return dateString;
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+  }
+  return '';
+}
+
+/* ==========================================================================
+   EVENT LISTENERS - AÇÕES GERAIS E MODAL DE REGISTRO
+   ========================================================================== */
+function setupEventListeners() {
+  document.getElementById('addRecord').addEventListener('click', openAddModal);
+  document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+  document.getElementById('printBtn').addEventListener('click', printTable);
+
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  document.getElementById('saveBtn').addEventListener('click', saveRecord);
+
+  document.getElementById('inputInicio').addEventListener('change', updateTerminoPreview);
+  document.getElementById('inputDuracao').addEventListener('input', updateTerminoPreview);
+  document.getElementById('inputAmpolaDiaria').addEventListener('input', calculateTotalAmpolas);
+}
+
+function setupFilterListeners() {
+  document.getElementById('search').addEventListener('input', filterTable);
+  document.getElementById('status').addEventListener('change', filterTable);
+  document.getElementById('date').addEventListener('change', filterTable);
+  document.getElementById('patient').addEventListener('input', filterTable);
+}
+
+function openAddModal() {
+  currentRecordId = null;
+  document.getElementById('modalTitle').textContent = 'Novo Registro de Antibiótico';
+  resetModalForm();
+  document.getElementById('recordModal').style.display = 'flex';
+}
+
+function editRecord(id) {
+  const record = records.find(r => r.id === id);
+  if (!record) return;
+  currentRecordId = id;
+  document.getElementById('modalTitle').textContent = 'Editar Registro de Antibiótico';
+  document.getElementById('inputData').value = formatDateForInput(record.dataRegistro);
+  document.getElementById('inputSetor').value = record.setor;
+  document.getElementById('inputPaciente').value = record.paciente;
+  document.getElementById('inputMedicamento').value = record.medicamento;
+  document.getElementById('inputMedicamentoSearch').value = record.medicamento;
+  document.getElementById('inputVia').value = record.via;
+  document.getElementById('inputDosagem').value = record.dosagem;
+  document.getElementById('inputTratamento').value = record.tratamento || '';
+  document.getElementById('inputPosologia').value = record.posologia;
+  document.getElementById('inputInicio').value = formatDateForInput(record.inicio);
+  document.getElementById('inputDuracao').value = String(record.duracao).replace(' dias', '');
+  document.getElementById('inputAmpolaDiaria').value = record.ampolaDiaria;
+  document.getElementById('inputTotalAmpolas').value = record.totalAmpolas;
+  document.getElementById('inputStatus').value = record.status;
+  updateTerminoPreview();
+  document.getElementById('recordModal').style.display = 'flex';
+}
+
+function calculateTotalAmpolas() {
+  const ampolaDiaria = parseFloat(document.getElementById('inputAmpolaDiaria').value) || 0;
+  const duracao = parseInt(document.getElementById('inputDuracao').value, 10) || 0;
+  document.getElementById('inputTotalAmpolas').value = (ampolaDiaria > 0 && duracao > 0) ? ampolaDiaria * duracao : '';
+}
+
+// Mostra ao usuário a data de término calculada, antes de salvar
+function updateTerminoPreview() {
+  const inicio = document.getElementById('inputInicio').value;
+  const duracao = parseInt(document.getElementById('inputDuracao').value, 10);
+  const preview = document.getElementById('terminoPreview');
+  if (inicio && duracao > 0) {
+    const termino = calculateEndDate(inicio, duracao);
+    preview.textContent = `Término previsto: ${formatDateForDisplay(termino)}`;
+  } else {
+    preview.textContent = '';
+  }
+  calculateTotalAmpolas();
+}
+
+function saveRecord() {
+  if (!validateForm()) {
+    showNotification('Por favor, preencha todos os campos obrigatórios.', 'error');
+    return;
+  }
+
+  const dataRegistro = document.getElementById('inputData').value;
+  const setor = document.getElementById('inputSetor').value.trim();
+  const paciente = document.getElementById('inputPaciente').value.trim();
+  const medicamento = document.getElementById('inputMedicamento').value.trim();
+  const via = document.getElementById('inputVia').value;
+  const dosagem = document.getElementById('inputDosagem').value.trim();
+  const tratamento = document.getElementById('inputTratamento').value;
+  const posologia = document.getElementById('inputPosologia').value.trim();
+  const inicio = document.getElementById('inputInicio').value;
+  const duracao = parseInt(document.getElementById('inputDuracao').value, 10);
+  const ampolaDiaria = parseFloat(document.getElementById('inputAmpolaDiaria').value);
+  const totalAmpolas = parseFloat(document.getElementById('inputTotalAmpolas').value) || (ampolaDiaria * duracao);
+  let status = document.getElementById('inputStatus').value;
+
+  const termino = calculateEndDate(inicio, duracao);
+  const terminoDisplay = formatDateForDisplay(termino);
+
+  // Se o usuário marcou "Ativo" mas a data de término calculada já passou,
+  // o status é ajustado automaticamente para "Finalizado".
+  const foiAutoFinalizado = status === 'Ativo' && isTreatmentExpired(terminoDisplay);
+  if (foiAutoFinalizado) status = 'Finalizado';
+
+  const id = currentRecordId || ('ABX' + Date.now().toString(36).toUpperCase());
+
+  const payload = {
+    id,
+    dataRegistro: formatDateForDisplay(dataRegistro),
+    setor, paciente, medicamento, via, dosagem, tratamento, posologia,
+    inicio: formatDateForDisplay(inicio),
+    duracao: `${duracao} dias`,
+    termino: terminoDisplay,
+    ampolaDiaria, totalAmpolas, status
+  };
+
+  const sufixoAutoFinalizado = foiAutoFinalizado
+    ? ' Status ajustado automaticamente para "Finalizado" (término já vencido).'
+    : '';
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
+  setDoc(doc(recordsCollection, id), payload)
+    .then(() => {
+      showNotification((currentRecordId ? 'Registro atualizado com sucesso!' : 'Registro adicionado com sucesso!') + sufixoAutoFinalizado, 'success');
+      closeModal();
+    })
+    .catch(err => {
+      console.error('Erro ao salvar registro:', err);
+      showNotification('Erro ao salvar no servidor. Verifique sua conexão e tente novamente.', 'error');
+    })
+    .finally(() => { saveBtn.disabled = false; });
+}
+
+function validateForm() {
+  const requiredFields = [
+    'inputData', 'inputSetor', 'inputPaciente', 'inputMedicamento',
+    'inputVia', 'inputDosagem', 'inputTratamento', 'inputPosologia', 'inputInicio',
+    'inputDuracao', 'inputAmpolaDiaria', 'inputStatus'
+  ];
+  let valid = true;
+  for (const fieldId of requiredFields) {
+    const field = document.getElementById(fieldId);
+    if (!field.value.trim()) {
+      field.style.borderColor = '#e74c3c';
+      valid = false;
+    } else {
+      field.style.borderColor = '#ddd';
+    }
+  }
+
+  // Campo Medicamento: o valor real fica no input oculto #inputMedicamento,
+  // mas o feedback visual é aplicado no campo de busca visível.
+  const medSearch = document.getElementById('inputMedicamentoSearch');
+  if (!document.getElementById('inputMedicamento').value.trim()) {
+    medSearch.classList.add('invalid-selection');
+    valid = false;
+  } else {
+    medSearch.classList.remove('invalid-selection');
+  }
+
+  return valid;
+}
+
+function deleteRecord(id) {
+  if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+  deleteDoc(doc(recordsCollection, id))
+    .then(() => showNotification('Registro excluído com sucesso!', 'success'))
+    .catch(err => {
+      console.error('Erro ao excluir registro:', err);
+      showNotification('Erro ao excluir no servidor. Tente novamente.', 'error');
+    });
+}
+
+function closeModal() {
+  document.getElementById('recordModal').style.display = 'none';
+}
+
+function resetModalForm() {
+  document.getElementById('inputData').value = '';
+  document.getElementById('inputSetor').value = '';
+  document.getElementById('inputPaciente').value = '';
+  document.getElementById('inputMedicamento').value = '';
+  document.getElementById('inputMedicamentoSearch').value = '';
+  document.getElementById('inputMedicamentoSearch').classList.remove('invalid-selection');
+  document.getElementById('inputVia').value = 'Oral';
+  document.getElementById('inputDosagem').value = '';
+  document.getElementById('inputTratamento').value = '';
+  document.getElementById('inputPosologia').value = '';
+  document.getElementById('inputInicio').value = '';
+  document.getElementById('inputDuracao').value = '';
+  document.getElementById('inputAmpolaDiaria').value = '';
+  document.getElementById('inputTotalAmpolas').value = '';
+  document.getElementById('inputStatus').value = 'Ativo';
+  document.getElementById('terminoPreview').textContent = '';
+  setDefaultDates();
+}
+
+/* ==========================================================================
+   UTILITÁRIOS: NOTIFICAÇÃO, ESCAPE HTML
+   ========================================================================== */
+function showNotification(message, type) {
+  const notification = document.getElementById('notification');
+  notification.textContent = message;
+  notification.className = `notification ${type}`;
+  notification.classList.add('show');
+  clearTimeout(showNotification._timer);
+  showNotification._timer = setTimeout(() => {
+    notification.classList.remove('show');
+  }, 3000);
+}
+
+function escapeHtml(value) {
+  if (value === undefined || value === null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ==========================================================================
+   EXPORTAÇÃO / IMPRESSÃO (aba Registros)
+   ========================================================================== */
+function exportToCSV() {
+  const filtered = getFilteredRecords();
+  let csvContent = "ID,Data Registro,Setor,Paciente,Medicamento,Via,Dosagem,Tratamento,Posologia,Início,Duração,Término,Ampola Diária,Total Ampolas,Status\n";
+  filtered.forEach(record => {
+    csvContent += `"${record.id}","${record.dataRegistro}","${record.setor}","${record.paciente}","${record.medicamento}","${record.via}","${record.dosagem}","${record.tratamento || ''}","${record.posologia}","${record.inicio}","${record.duracao}","${record.termino}","${record.ampolaDiaria}","${record.totalAmpolas}","${record.status}"\n`;
+  });
+  downloadFile(csvContent, 'controle_antibioticos.csv', 'text/csv;charset=utf-8;');
+  showNotification(`${filtered.length} registro(s) exportado(s) com sucesso!`, 'success');
+}
+
+// Regra @page da impressão. Com 'auto' NÃO fixamos tamanho/orientação: assim o Chrome mostra a opção
+// "Layout" (Retrato/Paisagem) na própria janela de impressão. Fixando size, ele esconde essa opção.
+function buildPageRule(orientation) {
+  return orientation === 'auto'
+    ? '@page { margin: 10mm; }'
+    : `@page { size: A4 ${orientation}; margin: 10mm; }`;
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Retorna os metadados visuais (cor e rótulo) de um status de tratamento
+function getStatusMeta(status) {
+  switch (status) {
+    case 'Ativo': return { bg: '#e8f5e9', color: '#2e7d32', dot: '#2ecc71', label: 'Ativo' };
+    case 'Finalizado': return { bg: '#e3f2fd', color: '#1565c0', dot: '#3498db', label: 'Finalizado' };
+    case 'Suspenso': return { bg: '#fff3e0', color: '#e65100', dot: '#f39c12', label: 'Suspenso' };
+    default: return { bg: '#ffebee', color: '#c62828', dot: '#e74c3c', label: status || '-' };
+  }
+}
+
+function printTable() {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showNotification('Habilite pop-ups para imprimir a tabela.', 'error');
+    return;
+  }
+
+  const orientation = document.getElementById('printOrientationRegistros').value;
+  const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
+  const filtered = getFilteredRecords();
+  const total = filtered.length;
+  const ativos = filtered.filter(r => r.status === 'Ativo').length;
+  const finalizados = filtered.filter(r => r.status === 'Finalizado').length;
+  const suspensos = filtered.filter(r => r.status === 'Suspenso').length;
+  const filtrosAtivos = Object.keys(columnFilters).length > 0 || document.getElementById('search').value || document.getElementById('status').value || document.getElementById('date').value || document.getElementById('patient').value;
+
+  let rows = '';
+  filtered.forEach(record => {
+    const statusMeta = getStatusMeta(record.status);
+    const diasRestantes = calculateRemainingDays(record.termino);
+    let diasHtml = '<span style="color:#999;">—</span>';
+    if (record.status === 'Ativo') {
+      if (diasRestantes > 3) diasHtml = `<span style="color:#27ae60;font-weight:600;">${diasRestantes} dias</span>`;
+      else if (diasRestantes > 0) diasHtml = `<span style="color:#e74c3c;font-weight:600;">${diasRestantes} dias</span>`;
+      else if (diasRestantes === 0) diasHtml = `<span style="color:#e74c3c;font-weight:700;">Vence Hoje</span>`;
+      else diasHtml = `<span style="color:#e74c3c;font-weight:700;">Expirado</span>`;
+    }
+    rows += `<tr>
+      <td>${escapeHtml(record.dataRegistro)}</td>
+      <td>${escapeHtml(record.setor)}</td>
+      <td>${escapeHtml(record.paciente)}</td>
+      <td>${escapeHtml(record.medicamento)}</td>
+      <td>${escapeHtml(record.via)}</td>
+      <td>${escapeHtml(record.dosagem)}</td>
+      <td>${escapeHtml(record.tratamento || '')}</td>
+      <td>${escapeHtml(record.posologia)}</td>
+      <td>${escapeHtml(record.inicio)}</td>
+      <td>${escapeHtml(record.duracao)}</td>
+      <td>${escapeHtml(record.termino)}</td>
+      <td>${diasHtml}</td>
+      <td>${escapeHtml(record.ampolaDiaria)}</td>
+      <td>${escapeHtml(record.totalAmpolas)}</td>
+      <td><span class="status-pill" style="background:${statusMeta.bg};color:${statusMeta.color};">
+        <span class="dot" style="background:${statusMeta.dot};"></span>${escapeHtml(statusMeta.label)}
+      </span></td>
+    </tr>`;
+  });
+
+  printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <title>Controle de Antibióticos - Impressão</title>
+    <style>
+      :root { --primary:#2c3e50; --secondary:#3498db; --accent:#e74c3c; --success:#2ecc71; --warning:#f39c12; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
+      .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 20px; }
+      .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
+      .report-header .subtitle { font-size: 13px; color: #777; }
+      .report-header .meta { text-align: right; font-size: 12px; color: #777; }
+      .summary { display:flex; gap: 12px; margin-bottom: 22px; }
+      .summary .chip { flex:1; border-radius: 8px; padding: 10px 14px; border: 1px solid #eee; }
+      .summary .chip .num { font-size: 20px; font-weight: 700; display:block; }
+      .summary .chip .lbl { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: .03em; }
+      .summary .chip.total { border-left: 4px solid var(--secondary); }
+      .summary .chip.ativo { border-left: 4px solid var(--success); }
+      .summary .chip.finalizado { border-left: 4px solid #1565c0; }
+      .summary .chip.suspenso { border-left: 4px solid var(--warning); }
+      table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+      th, td { border: 1px solid #e2e2e2; padding: 7px 8px; text-align: left; vertical-align: top; }
+      th { background-color: var(--primary); color: #fff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
+      tbody tr:nth-child(even) { background: #f8f9fb; }
+      .status-pill { display:inline-flex; align-items:center; gap:6px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; display:inline-block; }
+      .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+      @media print {
+        body { padding: 12mm 14mm; }
+        ${buildPageRule(orientation)}
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+      }
+    </style></head><body>
+    <div class="report-header">
+      <div>
+        <h1>${escapeHtml(hospitalName)}</h1>
+        <div class="subtitle">Relatório de Controle de Antibióticos${filtrosAtivos ? ' (filtrado)' : ''}</div>
+      </div>
+      <div class="meta">
+        Emitido por: Farmácia Clínica<br>
+        ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="chip total"><span class="num">${total}</span><span class="lbl">Total de registros</span></div>
+      <div class="chip ativo"><span class="num">${ativos}</span><span class="lbl">Tratamentos ativos</span></div>
+      <div class="chip finalizado"><span class="num">${finalizados}</span><span class="lbl">Finalizados</span></div>
+      <div class="chip suspenso"><span class="num">${suspensos}</span><span class="lbl">Suspensos</span></div>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>Data</th><th>Setor</th><th>Paciente</th><th>Medicamento</th>
+        <th>Via</th><th>Dosagem</th><th>Tratamento</th><th>Posologia</th><th>Início</th><th>Duração</th>
+        <th>Término</th><th>Dias Restantes</th><th>Ampola/Dia</th><th>Total</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="report-footer">
+      <span>Documento gerado automaticamente pelo Sistema de Controle de Antibióticos.${filtrosAtivos ? ' Lista filtrada — pode não incluir todos os registros do sistema.' : ''}</span>
+      <span>${filtered.length} registro(s) listado(s)</span>
+    </div>
+    </body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+/* ==========================================================================
+   ABA ESTOQUE
+   ========================================================================== */
+// Valores originais de "Estoque" de cada linha (cod -> valor), capturados uma
+// única vez a partir do HTML estático. Usados para restaurar/realinhar quando um
+// documento de estoque é removido do Firestore. "Tratamento" não entra aqui —
+// ele é sempre recalculado a partir dos registros ativos, nunca armazenado.
+const stockOriginalValues = {};
+const stockDebounceTimers = {};
+
+// Classifica a quantidade disponível nas faixas definidas pela farmácia:
+// >=100 Disponível (verde), 50-99 Atenção (laranja), 30-49 Crítico (vermelho), 0-29 M. Crítico (roxo).
+function classifyStockLevel(disponivel) {
+  if (disponivel >= 100) return 'normal';
+  if (disponivel >= 50) return 'atencao';
+  if (disponivel >= 30) return 'critico';
+  return 'mcritico';
+}
+
+// Mostra a data do último PDF do Soul MV carregado (compartilhada entre dispositivos
+// via Firestore). Antes do primeiro carregamento, mostra um aviso nesse sentido.
+function updateStockReferenceDate(stockReferenceAt) {
+  const el = document.getElementById('stockReferenceDate');
+  if (!el) return;
+  if (!stockReferenceAt) {
+    el.textContent = 'nunca atualizado via PDF';
+    return;
+  }
+  el.textContent = new Date(stockReferenceAt).toLocaleDateString('pt-BR');
+}
+
+function recalcStockRow(row) {
+  const tratamentoValue = parseFloat(row.querySelector('.stock-tratamento-value').textContent.replace(',', '.')) || 0;
+  const estoqueInput = row.querySelector('.stock-estoque');
+  const disponivelSpan = row.querySelector('td:last-child span');
+  const estoque = parseInt(estoqueInput.value, 10) || 0;
+  const disponivel = estoque - tratamentoValue;
+  const status = classifyStockLevel(disponivel);
+
+  disponivelSpan.textContent = disponivel;
+  disponivelSpan.className = `stock-${status}`;
+  row.setAttribute('data-status', status);
+  void disponivelSpan.offsetWidth; // reinicia a animação
+  disponivelSpan.classList.add('stock-updated');
+}
+
+/* ==========================================================================
+   CAMPO "MEDICAMENTO" — BUSCA COM LISTA FIXA
+   Substitui o antigo input de texto livre por um combobox que só aceita
+   valores desta lista, evitando divergência de grafia entre os registros
+   e o Estoque.
+   ========================================================================== */
+const MEDICAMENTOS_LISTA = [
+  'AMICACINA 250 MG/ML',
+  'AMPICILINA + SULBACTAM 3 G',
+  'ANFOTERICINA B 50 MG',
+  'AZITROMICINA 500 MG',
+  'BENZILPENICILINA BENZATINA 1200000UI/ML AMPOLA INJETAVEL',
+  'CEFALEXINA 500 MG',
+  'CEFALOTINA 1 G',
+  'CEFAZOLINA 1 G',
+  'CEFEPIMA 1 G',
+  'CEFTAZIDIMA 1 G',
+  'CEFTRIAXONA 1 G',
+  'CEFUROXIMA 750 MG',
+  'CIPROFLOXACINO 200 MG/100 ML',
+  'CIPROFLOXACINO 400 MG/200 ML',
+  'CIPROFLOXACINO 500 MG',
+  'CLINDAMICINA 150 MG/ML',
+  'CLINDAMICINA 300 MG',
+  'FLUCONAZOL 150 MG',
+  'FLUCONAZOL 2 MG/ML',
+  'GENTAMICINA 40 MG/ML',
+  'GENTAMICINA 80 MG',
+  'LEVOFLOXACINO 500 MG',
+  'LEVOFLOXACINO 500 MG/100 ML',
+  'MEROPENEM 1 G',
+  'METRONIDAZOL 250 MG',
+  'METRONIDAZOL 5 MG/100 ML',
+  'OXACILINA 500 MG',
+  'PIPERACILINA 4 G + TAZOBACTAM 0,5 G',
+  'POLIMIXINA B 500.000 UI/ML',
+  'SULFAMETOXAZOL + TRIMETOPRIMA 400 MG + 80 MG',
+  'TEICOPLANINA 400 MG',
+  'VANCOMICINA 500 MG'
+];
+
+function setupMedicamentoCombobox() {
+  const searchInput = document.getElementById('inputMedicamentoSearch');
+  const hiddenInput = document.getElementById('inputMedicamento');
+  const dropdown = document.getElementById('medDropdown');
+  if (!searchInput || !hiddenInput || !dropdown) return;
+
+  let highlightedIndex = -1;
+  let currentOptions = [];
+
+  function renderOptions(filter) {
+    const normFilter = normalizeMedName(filter);
+    currentOptions = MEDICAMENTOS_LISTA.filter(m => normalizeMedName(m).includes(normFilter));
+    highlightedIndex = -1;
+    dropdown.innerHTML = '';
+
+    if (currentOptions.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'med-dropdown-empty';
+      empty.textContent = 'Nenhum medicamento encontrado na lista.';
+      dropdown.appendChild(empty);
+      return;
+    }
+
+    currentOptions.forEach(nome => {
+      const opt = document.createElement('div');
+      opt.className = 'med-dropdown-option';
+      opt.textContent = nome;
+      // mousedown (não click) para disparar antes do blur do input
+      opt.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectMedicamento(nome);
+      });
+      dropdown.appendChild(opt);
+    });
+  }
+
+  function selectMedicamento(nome) {
+    searchInput.value = nome;
+    hiddenInput.value = nome;
+    searchInput.classList.remove('invalid-selection');
+    closeDropdown();
+  }
+
+  function openDropdown() {
+    renderOptions(searchInput.value);
+    dropdown.classList.add('open');
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('open');
+    highlightedIndex = -1;
+  }
+
+  function updateHighlight() {
+    const options = dropdown.querySelectorAll('.med-dropdown-option');
+    options.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedIndex));
+    if (highlightedIndex >= 0 && options[highlightedIndex]) {
+      options[highlightedIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  searchInput.addEventListener('focus', openDropdown);
+
+  searchInput.addEventListener('input', () => {
+    // Enquanto o usuário digita, a seleção fica pendente até escolher um item da lista.
+    hiddenInput.value = '';
+    openDropdown();
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (!dropdown.classList.contains('open')) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, currentOptions.length - 1);
+      updateHighlight();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+      updateHighlight();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && currentOptions[highlightedIndex]) {
+        selectMedicamento(currentOptions[highlightedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+
+  searchInput.addEventListener('blur', () => {
+    // Pequeno atraso para permitir que o mousedown da opção seja processado antes.
+    setTimeout(() => {
+      closeDropdown();
+      // Se o texto digitado não corresponde a um valor confirmado da lista, o campo é limpo
+      // (não é permitido salvar um medicamento fora da lista).
+      if (!hiddenInput.value) {
+        searchInput.value = '';
+      }
+    }, 150);
+  });
+}
+
+/* ==========================================================================
+   PADRONIZAÇÃO EM LOTE DOS MEDICAMENTOS JÁ SALVOS
+   Varre os registros existentes, identifica quais nomes de medicamento não
+   batem (exatamente, ignorando acento/caixa) com nenhum item de
+   MEDICAMENTOS_LISTA, e permite mapear cada nome divergente para o nome
+   padronizado correspondente, aplicando em lote via writeBatch.
+   ========================================================================== */
+let medMigrationMapping = {}; // { nomeAntigo: nomeNovoEscolhido }
+
+function setupMedMigration() {
+  const checkBtn = document.getElementById('checkMedMismatchBtn');
+  const modal = document.getElementById('medMigrationModal');
+  const body = document.getElementById('medMigrationBody');
+  const closeBtn = document.getElementById('closeMedMigrationModal');
+  const cancelBtn = document.getElementById('cancelMedMigrationBtn');
+  const applyBtn = document.getElementById('applyMedMigrationBtn');
+  if (!checkBtn || !modal) return;
+
+  function findBestGuess(nomeAntigo) {
+    const norm = normalizeMedName(nomeAntigo);
+    // 1) tenta achar um item da lista que contenha o nome antigo (ou vice-versa)
+    let candidato = MEDICAMENTOS_LISTA.find(m => normalizeMedName(m).includes(norm) || norm.includes(normalizeMedName(m)));
+    if (candidato) return candidato;
+    // 2) tenta bater só pela primeira palavra (princípio ativo), ex: "AMOXICILINA 500MG" -> "AMOXICILINA..."
+    const primeiraPalavra = norm.split(' ')[0];
+    if (primeiraPalavra && primeiraPalavra.length >= 4) {
+      candidato = MEDICAMENTOS_LISTA.find(m => normalizeMedName(m).startsWith(primeiraPalavra));
+      if (candidato) return candidato;
+    }
+    return '';
+  }
+
+  checkBtn.addEventListener('click', () => {
+    const listaNormalizada = new Set(MEDICAMENTOS_LISTA.map(normalizeMedName));
+
+    // Conta ocorrências de cada nome de medicamento que NÃO bate exatamente com a lista fixa.
+    const contagem = {};
+    records.forEach(r => {
+      const nome = (r.medicamento || '').trim();
+      if (!nome) return;
+      if (listaNormalizada.has(normalizeMedName(nome))) return; // já padronizado
+      contagem[nome] = (contagem[nome] || 0) + 1;
+    });
+
+    const nomesDivergentes = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a]);
+    medMigrationMapping = {};
+
+    if (nomesDivergentes.length === 0) {
+      body.innerHTML = '<p>Todos os registros já estão com nomes padronizados de acordo com a lista atual. Nada para atualizar.</p>';
+      applyBtn.style.display = 'none';
+    } else {
+      applyBtn.style.display = '';
+      const optionsHtml = ['<option value="">Ignorar (manter como está)</option>']
+        .concat(MEDICAMENTOS_LISTA.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`))
+        .join('');
+
+      body.innerHTML = `<p style="margin-bottom:12px;">Encontrados <strong>${nomesDivergentes.length}</strong> nome(s) de medicamento divergente(s) da lista, usados em <strong>${Object.values(contagem).reduce((a, b) => a + b, 0)}</strong> registro(s). Escolha o nome padronizado correspondente para cada um (ou deixe "Ignorar" para não alterar):</p>` +
+        nomesDivergentes.map(nomeAntigo => {
+          const guess = findBestGuess(nomeAntigo);
+          if (guess) medMigrationMapping[nomeAntigo] = guess;
+          return `
+            <div class="med-migration-row">
+              <div class="med-migration-old">
+                <strong>${escapeHtml(nomeAntigo)}</strong>
+                <span>${contagem[nomeAntigo]} registro(s)</span>
+              </div>
+              <i class="fas fa-arrow-right med-migration-arrow"></i>
+              <select data-old="${escapeHtml(nomeAntigo)}">${optionsHtml.replace(
+                guess ? `value="${escapeHtml(guess)}"` : '§§none§§',
+                guess ? `value="${escapeHtml(guess)}" selected` : '§§none§§'
+              )}</select>
+            </div>`;
+        }).join('');
+
+      body.querySelectorAll('select[data-old]').forEach(sel => {
+        sel.addEventListener('change', () => {
+          const nomeAntigo = sel.getAttribute('data-old');
+          if (sel.value) medMigrationMapping[nomeAntigo] = sel.value;
+          else delete medMigrationMapping[nomeAntigo];
+        });
+      });
+    }
+
+    modal.style.display = 'flex';
+  });
+
+  function closeMigrationModal() { modal.style.display = 'none'; }
+  closeBtn.addEventListener('click', closeMigrationModal);
+  cancelBtn.addEventListener('click', closeMigrationModal);
+
+  applyBtn.addEventListener('click', async () => {
+    const entradas = Object.entries(medMigrationMapping);
+    if (entradas.length === 0) {
+      showNotification('Nenhum mapeamento selecionado.', 'error');
+      return;
+    }
+    const totalRegistros = records.filter(r => medMigrationMapping[(r.medicamento || '').trim()]).length;
+    if (!confirm(`Isso vai atualizar ${totalRegistros} registro(s) no banco de dados, em todos os dispositivos. Deseja continuar?`)) return;
+
+    applyBtn.disabled = true;
+    try {
+      const registrosParaAtualizar = records.filter(r => medMigrationMapping[(r.medicamento || '').trim()]);
+      for (let i = 0; i < registrosParaAtualizar.length; i += 400) {
+        const lote = registrosParaAtualizar.slice(i, i + 400);
+        const batch = writeBatch(db);
+        lote.forEach(r => {
+          const novoNome = medMigrationMapping[(r.medicamento || '').trim()];
+          batch.update(doc(recordsCollection, r.id), { medicamento: novoNome });
+        });
+        await batch.commit();
+      }
+      showNotification(`${registrosParaAtualizar.length} registro(s) atualizado(s) com sucesso!`, 'success');
+      closeMigrationModal();
+    } catch (err) {
+      console.error('Erro ao padronizar medicamentos:', err);
+      showNotification('Erro ao atualizar os registros. Tente novamente.', 'error');
+    } finally {
+      applyBtn.disabled = false;
+    }
+  });
+}
+
+// Remove acentos e normaliza maiúsculas/espaços para comparar nomes de antibióticos
+// digitados livremente no Registro com os nomes cadastrados na tabela de Estoque.
+function normalizeMedName(str) {
+  return (str || '')
+    .toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .trim();
+}
+
+// Recalcula "Tratamento em Andamento" de cada antibiótico somando a quantidade
+// AINDA RESTANTE de cada tratamento (calculateRemainingQuantity: dose diária x
+// dias que faltam até o término) de todos os registros com status "Ativo" cujo
+// nome do medicamento case-insensitive/sem acento/sem pontuação bate (por conter
+// ou estar contido) com o nome da linha de estoque. Esse valor vai diminuindo
+// sozinho conforme os dias do tratamento passam.
+// Quando o nome não bate com nenhuma linha, ou bate com mais de uma (ambíguo),
+// o tratamento fica de fora da soma e aparece no aviso da aba.
+function recomputeStockTratamento() {
+  const tbody = document.getElementById('stockTableBody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const stockRows = rows.map(row => ({ row, cod: row.getAttribute('data-cod'), norm: normalizeMedName(row.children[1].textContent) }));
+
+  const totals = {};
+  stockRows.forEach(s => { totals[s.cod] = 0; });
+
+  const unmatched = {};
+  const ambiguous = {};
+
+  records.filter(r => r.status === 'Ativo').forEach(record => {
+    const normMed = normalizeMedName(record.medicamento);
+    if (!normMed) return;
+    const matches = stockRows.filter(s => s.norm && (normMed.includes(s.norm) || s.norm.includes(normMed)));
+    if (matches.length === 1) {
+      totals[matches[0].cod] += calculateRemainingQuantity(record);
+    } else if (matches.length === 0) {
+      unmatched[record.medicamento] = (unmatched[record.medicamento] || 0) + 1;
+    } else {
+      ambiguous[record.medicamento] = (ambiguous[record.medicamento] || 0) + 1;
+    }
+  });
+
+  stockRows.forEach(({ row, cod }) => {
+    const value = totals[cod] || 0;
+    row.querySelector('.stock-tratamento-value').textContent = Number.isInteger(value) ? value : value.toFixed(1);
+    recalcStockRow(row);
+  });
+
+  updateStockUnmatchedWarning(unmatched, ambiguous);
+}
+
+function updateStockUnmatchedWarning(unmatched, ambiguous) {
+  const box = document.getElementById('stockUnmatchedWarning');
+  if (!box) return;
+  const unmatchedNames = Object.keys(unmatched);
+  const ambiguousNames = Object.keys(ambiguous);
+  if (unmatchedNames.length === 0 && ambiguousNames.length === 0) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  let html = '<i class="fas fa-triangle-exclamation"></i> ';
+  if (unmatchedNames.length > 0) {
+    html += `<strong>Não reconhecidos no Estoque</strong> (não entraram na soma de "Tratamento em Andamento"): ${unmatchedNames.map(escapeHtml).join(', ')}. `;
+  }
+  if (ambiguousNames.length > 0) {
+    html += `<strong>Nome ambíguo</strong> (bateu com mais de um antibiótico do Estoque): ${ambiguousNames.map(escapeHtml).join(', ')}. `;
+  }
+  html += 'Confira a grafia do medicamento no registro.';
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
+// Aplica os dados de Estoque vindos do Firestore a todas as linhas da tabela.
+// Linhas sem documento no Firestore mantêm/retornam ao valor original do HTML.
+// "Tratamento" nunca vem do Firestore — é sempre recalculado à parte.
+function applyStockSnapshot(snapshot) {
+  const tbody = document.getElementById('stockTableBody');
+  if (!tbody) return;
+  const remote = {};
+  snapshot.forEach(docSnap => { remote[docSnap.id] = docSnap.data(); });
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cod = row.getAttribute('data-cod');
+    const estoqueInput = row.querySelector('.stock-estoque');
+    // Não sobrescreve enquanto o próprio usuário está digitando nesta linha.
+    if (document.activeElement === estoqueInput) return;
+
+    if (remote[cod] && Number.isFinite(remote[cod].estoque)) {
+      estoqueInput.value = remote[cod].estoque;
+    } else if (stockOriginalValues[cod] !== undefined) {
+      estoqueInput.value = stockOriginalValues[cod];
+    }
+    recalcStockRow(row);
+  });
+}
+
+// Grava o Estoque no Firestore com debounce (evita uma escrita a cada tecla digitada).
+function saveStockRow(cod, estoque) {
+  clearTimeout(stockDebounceTimers[cod]);
+  stockDebounceTimers[cod] = setTimeout(() => {
+    setDoc(doc(stockCollection, cod), { estoque }, { merge: true })
+      .catch(err => console.error('Erro ao salvar estoque:', err));
+  }, 600);
+}
+
+/* ==========================================================================
+   IMPORTAÇÃO DE PDF — Posição de Estoque (Soul MV)
+   ========================================================================== */
+const PDFJS_VERSION = '3.11.174';
+let pdfJsLoadPromise = null;
+
+// Carrega o pdf.js via CDN sob demanda (só quando o usuário for importar um PDF).
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfJsLoadPromise) return pdfJsLoadPromise;
+  pdfJsLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de leitura de PDF.'));
+    document.head.appendChild(script);
+  });
+  return pdfJsLoadPromise;
+}
+
+// Extrai todo o texto do PDF, página por página.
+async function extractPdfText(file) {
+  const pdfjsLib = await loadPdfJs();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1 }); // já aplica a rotação da página (ex: 90°)
+    const content = await page.getTextContent();
+
+    // O relatório do Soul MV costuma vir com a página rotacionada (formato paisagem),
+    // e nesse caso a ordem "crua" dos itens de texto do PDF nem sempre é a ordem de
+    // leitura visual. Por isso, recalculamos a posição de cada trecho já considerando
+    // a rotação e reconstruímos o texto linha a linha, da esquerda para a direita.
+    const items = content.items
+      .filter(item => item.str && item.str.trim())
+      .map(item => {
+        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        return { str: item.str, x: tx[4], y: tx[5] };
+      });
+
+    const rows = {};
+    items.forEach(it => {
+      const rowKey = Math.round(it.y / 3) * 3;
+      (rows[rowKey] = rows[rowKey] || []).push(it);
+    });
+    Object.keys(rows).map(Number).sort((a, b) => a - b).forEach(key => {
+      const lineText = rows[key].sort((a, b) => a.x - b.x).map(it => it.str).join(' ');
+      fullText += lineText + '\n';
+    });
+  }
+
+  return fullText;
+}
+
+// Interpreta o texto extraído do PDF "Posição de Estoque" do Soul MV. Cada produto
+// aparece uma vez por estoque físico (código 322 e 325); a função soma os dois.
+// Só reconhece códigos que já existem na tabela (knownCodes), evitando confundir
+// números soltos dentro do nome dos produtos (ex: "PIPERACILINA 4 G") com códigos —
+// por isso não é preciso remover cabeçalhos/rodapés do relatório antes de processar.
+const DECIMAL_BR = /^\d{1,3}(\.\d{3})*,\d+$/;
+function parseBrNumber(tok) {
+  return parseFloat(tok.replace(/\./g, '').replace(',', '.'));
+}
+
+function parseSoulMvStockPdf(rawText, knownCodes) {
+  const tokens = rawText.split(/\s+/).filter(Boolean);
+  const byLocation = {}; // codigo -> { '322': valor, '325': valor }
+  let currentCode = null;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    if (/^\d+$/.test(tok) && knownCodes.has(tok)) {
+      currentCode = tok;
+      continue;
+    }
+    if ((tok === '322' || tok === '325') && currentCode) {
+      const local = tok;
+      const values = [];
+      let j = i + 1;
+      while (j < tokens.length && values.length < 4) {
+        if (DECIMAL_BR.test(tokens[j])) values.push(parseBrNumber(tokens[j]));
+        else if (/^\d+$/.test(tokens[j]) && knownCodes.has(tokens[j])) break;
+        j++;
+      }
+      if (values.length === 4) {
+        byLocation[currentCode] = byLocation[currentCode] || {};
+        byLocation[currentCode][local] = values[3]; // "Estoque Atual" é o 4º valor (Mín, Máx, P.Pedido, Atual)
+        i = j - 1;
+      }
+    }
+  }
+
+  const totals = {};
+  Object.keys(byLocation).forEach(code => {
+    const locs = byLocation[code];
+    totals[code] = Math.round((locs['322'] || 0) + (locs['325'] || 0));
+  });
+  return totals;
+}
+
+function setupStockTab() {
+  const searchInput = document.getElementById('estoque-search');
+  const statusSelect = document.getElementById('estoque-status');
+  const tbody = document.getElementById('stockTableBody');
+  const emptyState = document.getElementById('stockEmptyState');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cod = row.getAttribute('data-cod');
+    const estoqueInput = row.querySelector('.stock-estoque');
+    stockOriginalValues[cod] = estoqueInput.value;
+  });
+  recomputeStockTratamento();
+
+  tbody.addEventListener('input', e => {
+    if (e.target.classList.contains('stock-estoque')) {
+      const row = e.target.closest('tr');
+      const cod = row.getAttribute('data-cod');
+      recalcStockRow(row);
+      saveStockRow(cod, row.querySelector('.stock-estoque').value);
+    }
+  });
+
+  document.getElementById('resetStockBtn').addEventListener('click', async () => {
+    if (!confirm('Isso vai restaurar o valor original de Estoque de todos os antibióticos ("Tratamento em Andamento" já é sempre recalculado). Continuar?')) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.forEach(row => {
+      const cod = row.getAttribute('data-cod');
+      row.querySelector('.stock-estoque').value = stockOriginalValues[cod];
+      recalcStockRow(row);
+    });
+    try {
+      const batch = writeBatch(db);
+      rows.forEach(row => batch.delete(doc(stockCollection, row.getAttribute('data-cod'))));
+      await batch.commit();
+      showNotification('Valores de estoque restaurados.', 'success');
+    } catch (err) {
+      console.error('Erro ao restaurar estoque:', err);
+      showNotification('Valores restaurados localmente, mas houve erro ao sincronizar. Tente novamente.', 'error');
+    }
+  });
+
+  document.getElementById('printStockBtn').addEventListener('click', () => printStockTable(tbody));
+
+  const importPdfBtn = document.getElementById('importPdfBtn');
+  const importPdfInput = document.getElementById('importPdfInput');
+  importPdfBtn.addEventListener('click', () => importPdfInput.click());
+  importPdfInput.addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const originalLabel = importPdfBtn.innerHTML;
+    importPdfBtn.disabled = true;
+    importPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lendo PDF...';
+
+    try {
+      const text = await extractPdfText(file);
+      if (text.trim().length < 30) {
+        showNotification('Não consegui extrair texto deste PDF (pode ser uma imagem escaneada, não um PDF com texto).', 'error');
+        return;
+      }
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const knownCodes = new Set(rows.map(r => r.getAttribute('data-cod')));
+      const totals = parseSoulMvStockPdf(text, knownCodes);
+
+      const foundCodes = Object.keys(totals);
+      if (foundCodes.length === 0) {
+        showNotification('Não consegui reconhecer nenhum antibiótico neste PDF. Confira se é o relatório de Posição de Estoque do Soul MV.', 'error');
+        return;
+      }
+
+      const missing = rows.filter(r => !(r.getAttribute('data-cod') in totals)).map(r => r.children[1].textContent.trim());
+      const confirmMsg = `Encontrei ${foundCodes.length} de ${rows.length} antibióticos no PDF (soma dos estoques 322 + 325).\n\nIsso vai atualizar o campo "Estoque" desses itens (o "Tratamento em Andamento" não é alterado). Continuar?`;
+      if (!confirm(confirmMsg)) return;
+
+      const batch = writeBatch(db);
+      rows.forEach(row => {
+        const cod = row.getAttribute('data-cod');
+        if (!(cod in totals) || !Number.isFinite(totals[cod])) return;
+        const estoqueInput = row.querySelector('.stock-estoque');
+        estoqueInput.value = totals[cod];
+        recalcStockRow(row);
+        batch.set(doc(stockCollection, cod), { estoque: totals[cod] }, { merge: true });
+      });
+      await batch.commit();
+
+      const nowIso = new Date().toISOString();
+      setDoc(configDocRef, { stockReferenceAt: nowIso }, { merge: true }).catch(err => console.error('Erro ao registrar data de referência do estoque:', err));
+      updateStockReferenceDate(nowIso);
+
+      const msg = missing.length === 0
+        ? `Estoque atualizado a partir do PDF: ${foundCodes.length} antibióticos.`
+        : `Estoque atualizado: ${foundCodes.length} antibióticos. Não encontrados no PDF: ${missing.join(', ')}.`;
+      showNotification(msg, missing.length === 0 ? 'success' : 'error');
+    } catch (err) {
+      console.error('Erro ao importar PDF:', err);
+      showNotification('Erro ao ler o PDF. Verifique se o arquivo não está corrompido e tente novamente.', 'error');
+    } finally {
+      importPdfBtn.disabled = false;
+      importPdfBtn.innerHTML = originalLabel;
+      importPdfInput.value = '';
+    }
+  });
+
+  function filterStock() {
+    const term = searchInput.value.toLowerCase();
+    const status = statusSelect.value;
+    let visibleCount = 0;
+    tbody.querySelectorAll('tr').forEach(row => {
+      const name = row.children[1].textContent.toLowerCase();
+      const rowStatus = row.getAttribute('data-status');
+      const matchesTerm = !term || name.includes(term);
+      const matchesStatus = !status || status === rowStatus;
+      const visible = matchesTerm && matchesStatus;
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  searchInput.addEventListener('input', filterStock);
+  statusSelect.addEventListener('change', filterStock);
+}
+
+
+/* ==========================================================================
+   IMPRESSÃO - ABA ESTOQUE
+   ========================================================================== */
+function printStockTable(tbody) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showNotification('Habilite pop-ups para imprimir a tabela.', 'error');
+    return;
+  }
+
+  const orientation = document.getElementById('printOrientationEstoque').value;
+  const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
+  const statusLabels = { normal: 'Disponível', atencao: 'Atenção', critico: 'Crítico', mcritico: 'M. Crítico' };
+  const statusColors = { normal: '#2ecc71', atencao: '#f39c12', critico: '#a93226', mcritico: '#8e44ad' };
+
+  let mCritico = 0, critico = 0, atencao = 0, normal = 0;
+
+  let rows = '';
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cod = row.children[0].textContent.trim();
+    const nome = row.children[1].textContent.trim();
+    const tratamento = row.querySelector('.stock-tratamento-value').textContent.trim() || '0';
+    const estoque = row.querySelector('.stock-estoque').value || '0';
+    const disponivel = row.querySelector('td:last-child span').textContent.trim();
+    const status = row.getAttribute('data-status');
+    const label = statusLabels[status] || 'Disponível';
+    const color = statusColors[status] || '#2ecc71';
+
+    if (status === 'mcritico') mCritico++;
+    else if (status === 'critico') critico++;
+    else if (status === 'atencao') atencao++;
+    else normal++;
+
+    rows += `<tr>
+      <td>${escapeHtml(cod)}</td>
+      <td>${escapeHtml(nome)}</td>
+      <td style="text-align:center;">${escapeHtml(tratamento)}</td>
+      <td style="text-align:center;">${escapeHtml(estoque)}</td>
+      <td style="text-align:center;"><span class="pill" style="background:${color};">${escapeHtml(disponivel)}</span></td>
+      <td style="text-align:center;">${escapeHtml(label)}</td>
+    </tr>`;
+  });
+
+  printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <title>Estoque de Antibióticos - Impressão</title>
+    <style>
+      :root { --primary:#2c3e50; --secondary:#3498db; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
+      .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 20px; }
+      .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
+      .report-header .subtitle { font-size: 13px; color: #777; }
+      .report-header .meta { text-align: right; font-size: 12px; color: #777; }
+      .summary { display:flex; gap: 12px; margin-bottom: 22px; }
+      .summary .chip { flex:1; border-radius: 8px; padding: 10px 14px; border: 1px solid #eee; }
+      .summary .chip .num { font-size: 20px; font-weight: 700; display:block; }
+      .summary .chip .lbl { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: .03em; }
+      .summary .chip.mcritico { border-left: 4px solid #8e44ad; }
+      .summary .chip.critico { border-left: 4px solid #a93226; }
+      .summary .chip.atencao { border-left: 4px solid #f39c12; }
+      .summary .chip.normal { border-left: 4px solid #2ecc71; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border: 1px solid #e2e2e2; padding: 8px 10px; text-align: left; vertical-align: top; }
+      th { background-color: var(--primary); color: #fff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
+      tbody tr:nth-child(even) { background: #f8f9fb; }
+      .pill { display:inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; min-width: 32px; }
+      .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+      @media print {
+        body { padding: 12mm 14mm; }
+        ${buildPageRule(orientation)}
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+      }
+    </style></head><body>
+    <div class="report-header">
+      <div>
+        <h1>${escapeHtml(hospitalName)}</h1>
+        <div class="subtitle">Estoque de Antibióticos (CAF + Farmácia)</div>
+      </div>
+      <div class="meta">
+        Emitido por: Farmácia Clínica<br>
+        ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="chip mcritico"><span class="num">${mCritico}</span><span class="lbl">M. Crítico</span></div>
+      <div class="chip critico"><span class="num">${critico}</span><span class="lbl">Crítico</span></div>
+      <div class="chip atencao"><span class="num">${atencao}</span><span class="lbl">Atenção</span></div>
+      <div class="chip normal"><span class="num">${normal}</span><span class="lbl">Disponível</span></div>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>Cód.</th><th>Antibiótico</th><th>Tratamento em Andamento</th><th>Estoque (CAF+Farmácia)</th><th>Disponível</th><th>Situação</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="report-footer">
+      <span>Documento gerado automaticamente pelo Sistema de Controle de Antibióticos.</span>
+      <span>Valores refletem os dados no momento da impressão.</span>
+    </div>
+    </body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+/* ==========================================================================
+   ABA PROTOCOLO DE INFUSÃO
+   ========================================================================== */
+function setupProtocolTab() {
+  const searchInput = document.getElementById('protocolo-search');
+  const tbody = document.getElementById('protocolTableBody');
+  const emptyState = document.getElementById('protocolEmptyState');
+
+  function filterProtocol() {
+    const term = searchInput.value.toLowerCase();
+    let visibleCount = 0;
+    tbody.querySelectorAll('tr').forEach(row => {
+      const name = row.children[0].textContent.toLowerCase();
+      const visible = !term || name.includes(term);
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  searchInput.addEventListener('input', filterProtocol);
+}
+
+/* ==========================================================================
+   ABA RELATÓRIOS — consumo mensal calculado a partir de "records"
+   ========================================================================== */
+const MESES_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function getCurrentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(monthValue) {
+  const [y, m] = monthValue.split('-').map(Number);
+  if (!y || !m) return monthValue;
+  return `${MESES_PT[m - 1]} de ${y}`;
+}
+
+// Converte "dd/mm/aaaa" em Date. Retorna null se inválido.
+function parseDateBR(dateString) {
+  if (!dateString) return null;
+  const parts = dateString.split('/');
+  if (parts.length !== 3) return null;
+  const date = new Date(parts[2], parts[1] - 1, parts[0]);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/* ==========================================================================
+   RELATÓRIOS — período (dia/mês/ano), setor e antibióticos selecionáveis
+   ========================================================================== */
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const PERIOD_TEXT = {
+  day:   { adj: 'Diária', report: 'Diário', prev: 'dia anterior', of: 'do dia' },
+  month: { adj: 'Mensal', report: 'Mensal', prev: 'mês anterior', of: 'do mês' },
+  year:  { adj: 'Anual',  report: 'Anual',  prev: 'ano anterior', of: 'do ano' }
+};
+const SETORES_PADRAO = ['1º Andar', '2º Andar', '3º Andar', 'UTI'];
+
+function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatDateBR(d) { return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`; }
+function toDateInputValue(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+
+// Estado dos filtros da aba Relatórios. setores/meds: null = todos; Set = só os escolhidos.
+const reportState = {
+  periodType: 'month',
+  anchor: startOfDay(new Date()),
+  countMode: 'inicio',
+  setores: null,
+  meds: null
+};
+
+function getPeriodRange(type, anchor) {
+  const a = startOfDay(anchor);
+  if (type === 'day') return { start: a, end: a };
+  if (type === 'month') return { start: new Date(a.getFullYear(), a.getMonth(), 1), end: new Date(a.getFullYear(), a.getMonth() + 1, 0) };
+  return { start: new Date(a.getFullYear(), 0, 1), end: new Date(a.getFullYear(), 11, 31) };
+}
+
+function shiftAnchor(type, anchor, delta) {
+  const a = startOfDay(anchor);
+  if (type === 'day') return addDays(a, delta);
+  if (type === 'month') return new Date(a.getFullYear(), a.getMonth() + delta, 1);
+  return new Date(a.getFullYear() + delta, 0, 1);
+}
+
+function formatPeriodLabel(type, anchor) {
+  if (type === 'day') return formatDateBR(anchor);
+  if (type === 'month') return `${MESES_PT[anchor.getMonth()]} de ${anchor.getFullYear()}`;
+  return String(anchor.getFullYear());
+}
+
+function getRecordDuration(record) {
+  const m = String(record.duracao || '').match(/\d+/);
+  if (m) return parseInt(m[0], 10);
+  const i = parseDateBR(record.inicio), t = parseDateBR(record.termino);
+  return i && t ? Math.max(0, Math.round((t - i) / DAY_MS)) : 0;
+}
+
+// Em quais datas e em que quantidade um registro "consome" antibiótico.
+// - 'inicio': o total do tratamento inteiro conta na data de início (critério original do sistema).
+// - 'uso': a dose diária conta em cada dia de uso (do início até hoje; dias futuros ainda não foram consumidos).
+function getConsumptionEvents(record, mode, today) {
+  const inicio = parseDateBR(record.inicio);
+  if (!inicio) return [];
+  if (mode === 'inicio') return [{ date: startOfDay(inicio), qty: Number(record.totalAmpolas) || 0 }];
+  const dose = Number(record.ampolaDiaria) || 0;
+  const dur = getRecordDuration(record);
+  const events = [];
+  for (let i = 0; i < dur; i++) {
+    const d = addDays(startOfDay(inicio), i);
+    if (d > today) break;
+    events.push({ date: d, qty: dose });
+  }
+  return events;
+}
+
+// Registros que passam nos filtros de setor e de antibióticos.
+function getReportRecords() {
+  return records.filter(r => {
+    if (reportState.setores && !reportState.setores.has(r.setor)) return false;
+    if (reportState.meds && !reportState.meds.has(r.medicamento)) return false;
+    return true;
+  });
+}
+
+// Soma o consumo dos registros dentro de [start, end], por antibiótico e por setor.
+function aggregateRange(recs, start, end, mode, today) {
+  const byMed = {}, bySetor = {}, byMedSetor = {}, pacientes = new Set();
+  let total = 0, registros = 0;
+  recs.forEach(record => {
+    let qty = 0, hit = false;
+    getConsumptionEvents(record, mode, today).forEach(ev => {
+      if (ev.date >= start && ev.date <= end) { qty += ev.qty; hit = true; }
+    });
+    if (!hit) return;
+    total += qty;
+    registros++;
+    pacientes.add(record.paciente);
+    if (!byMed[record.medicamento]) byMed[record.medicamento] = { quantidade: 0, pacientes: new Set(), viaCount: {} };
+    const m = byMed[record.medicamento];
+    m.quantidade += qty;
+    m.pacientes.add(record.paciente);
+    m.viaCount[record.via] = (m.viaCount[record.via] || 0) + 1;
+    const setor = record.setor || '—';
+    if (!bySetor[setor]) bySetor[setor] = { quantidade: 0, pacientes: new Set() };
+    bySetor[setor].quantidade += qty;
+    bySetor[setor].pacientes.add(record.paciente);
+    if (!byMedSetor[record.medicamento]) byMedSetor[record.medicamento] = {};
+    byMedSetor[record.medicamento][setor] = (byMedSetor[record.medicamento][setor] || 0) + qty;
+  });
+  return { byMed, bySetor, byMedSetor, pacientes, total, registros };
+}
+
+// Mantido para o "Comparativo entre Meses": agora também respeita os filtros e o critério escolhidos.
+function aggregateRecordsByMonth(year, month) {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+  return aggregateRange(getReportRecords(), start, end, reportState.countMode, startOfDay(new Date())).byMed;
+}
+
+function buildMedRows(cur, prev) {
+  return Object.keys(cur.byMed).map(medicamento => {
+    const c = cur.byMed[medicamento];
+    const prevQtd = prev.byMed[medicamento] ? prev.byMed[medicamento].quantidade : 0;
+    let variacao;
+    if (prevQtd === 0) {
+      variacao = c.quantidade > 0 ? 'novo' : '0%';
+    } else {
+      const pct = ((c.quantidade - prevQtd) / prevQtd) * 100;
+      variacao = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
+    }
+    const via = Object.entries(c.viaCount).sort((a, b) => b[1] - a[1])[0][0];
+    return { medicamento, quantidade: c.quantidade, pacientes: c.pacientes.size, via, variacao };
+  }).sort((a, b) => b.quantidade - a.quantidade);
+}
+
+function buildSectorRows(cur) {
+  return Object.keys(cur.bySetor).map(setor => ({
+    setor,
+    quantidade: cur.bySetor[setor].quantidade,
+    pacientes: cur.bySetor[setor].pacientes.size,
+    pct: cur.total > 0 ? Math.round((cur.bySetor[setor].quantidade / cur.total) * 100) : 0
+  })).sort((a, b) => b.quantidade - a.quantidade);
+}
+
+// Matriz "antibiótico x setor": quanto de cada antibiótico saiu para cada setor, com totais por setor.
+function buildSectorMatrix(cur) {
+  const sectorRows = buildSectorRows(cur);
+  const info = {};
+  sectorRows.forEach(sr => { info[sr.setor] = sr; });
+  const setores = sectorRows.map(sr => sr.setor)
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+  const rows = Object.keys(cur.byMedSetor).map(medicamento => {
+    const valores = cur.byMedSetor[medicamento];
+    const total = Object.values(valores).reduce((acc, v) => acc + v, 0);
+    return { medicamento, valores, total };
+  }).sort((a, b) => b.total - a.total || a.medicamento.localeCompare(b.medicamento, 'pt-BR'));
+  return {
+    setores,
+    rows,
+    totals: setores.map(st => info[st].quantidade),
+    pcts: setores.map(st => info[st].pct),
+    pacientes: setores.map(st => info[st].pacientes),
+    totalGeral: cur.total,
+    pacientesTotal: cur.pacientes.size
+  };
+}
+
+// Barras da evolução: ano = 12 meses; mês = cada dia; dia = 7 dias até a data escolhida.
+function buildTimeline(recs, type, anchor, mode, today) {
+  const a = startOfDay(anchor);
+  const buckets = [];
+  let title;
+  if (type === 'year') {
+    const y = a.getFullYear();
+    title = `Evolução por mês — ${y}`;
+    for (let m = 0; m < 12; m++) {
+      buckets.push({ start: new Date(y, m, 1), end: new Date(y, m + 1, 0), label: MESES_ABREV[m], hint: `${MESES_PT[m]} de ${y}` });
+    }
+  } else if (type === 'month') {
+    const y = a.getFullYear(), m = a.getMonth();
+    title = `Evolução por dia — ${MESES_PT[m]} de ${y}`;
+    const n = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= n; d++) {
+      const date = new Date(y, m, d);
+      buckets.push({ start: date, end: date, label: String(d), hint: formatDateBR(date) });
+    }
+  } else {
+    title = 'Evolução — 7 dias até a data escolhida';
+    for (let i = 6; i >= 0; i--) {
+      const date = addDays(a, -i);
+      buckets.push({ start: date, end: date, label: `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}`, hint: formatDateBR(date), selected: i === 0 });
+    }
+  }
+  const dayMap = {};
+  recs.forEach(r => getConsumptionEvents(r, mode, today).forEach(ev => {
+    const k = ev.date.getTime();
+    dayMap[k] = (dayMap[k] || 0) + ev.qty;
+  }));
+  buckets.forEach(b => {
+    let sum = 0;
+    for (let d = new Date(b.start); d <= b.end; d = addDays(d, 1)) sum += dayMap[d.getTime()] || 0;
+    b.value = sum;
+  });
+  return { title, buckets };
+}
+
+function describeSelection(selected, allText, noun, maxNames) {
+  if (selected === null) return allText;
+  const names = Array.from(selected);
+  if (names.length === 0) return 'Nenhum selecionado';
+  if (names.length <= maxNames) return names.join(', ');
+  return `${names.length} ${noun} selecionados`;
+}
+
+// Lista suspensa com caixas de seleção (várias opções), busca e "Selecionar tudo".
+// selected === null significa "todas" (inclusive opções que surgirem depois).
+function createMultiSelect(root, cfg) {
+  const btn = root.querySelector('.ms-btn');
+  const textEl = root.querySelector('.ms-text');
+  const panel = root.querySelector('.ms-panel');
+  let options = [];
+  let optionsKey = '';
+  let selected = null;
+  let pressStartedInside = false;
+
+  function isOpen() { return root.classList.contains('ms-open'); }
+
+  function updateButtonText() {
+    textEl.textContent = describeSelection(selected, cfg.allText, cfg.noun, 2);
+    root.classList.toggle('ms-active', selected !== null);
+  }
+
+  function syncChecks() {
+    const cbs = Array.from(panel.querySelectorAll('.ms-list input[type="checkbox"]'));
+    cbs.forEach(cb => { cb.checked = selected === null || selected.has(cb.value); });
+    const visible = cbs.filter(cb => cb.closest('.ms-opt').style.display !== 'none');
+    const allCb = panel.querySelector('.ms-all-cb');
+    if (!allCb) return;
+    allCb.checked = visible.length > 0 && visible.every(cb => cb.checked);
+    allCb.indeterminate = !allCb.checked && visible.some(cb => cb.checked);
+  }
+
+  function buildPanel() {
+    panel.innerHTML = `
+      <input type="text" class="ms-search" placeholder="Pesquisar..." autocomplete="off">
+      <label class="ms-opt ms-all"><input type="checkbox" class="ms-all-cb"><span>(Selecionar tudo)</span></label>
+      <div class="ms-list">${options.map(o => `<label class="ms-opt"><input type="checkbox" value="${escapeHtml(o)}"><span>${escapeHtml(o)}</span></label>`).join('')}</div>`;
+    syncChecks();
+  }
+
+  function commit(set) {
+    selected = (options.length > 0 && options.every(o => set.has(o))) ? null : set;
+    updateButtonText();
+    syncChecks();
+    cfg.onChange(selected);
+  }
+
+  function materialized() { return selected === null ? new Set(options) : new Set(selected); }
+
+  panel.addEventListener('change', e => {
+    const t = e.target;
+    if (t.classList.contains('ms-all-cb')) {
+      const set = materialized();
+      panel.querySelectorAll('.ms-list .ms-opt').forEach(opt => {
+        if (opt.style.display === 'none') return;
+        const v = opt.querySelector('input').value;
+        if (t.checked) set.add(v); else set.delete(v);
+      });
+      commit(set);
+    } else if (t.matches('.ms-list input[type="checkbox"]')) {
+      const set = materialized();
+      if (t.checked) set.add(t.value); else set.delete(t.value);
+      commit(set);
+    }
+  });
+
+  panel.addEventListener('input', e => {
+    if (!e.target.classList.contains('ms-search')) return;
+    const term = e.target.value.toLowerCase();
+    panel.querySelectorAll('.ms-list .ms-opt').forEach(opt => {
+      opt.style.display = opt.textContent.toLowerCase().includes(term) ? '' : 'none';
+    });
+    syncChecks();
+  });
+
+  function open() {
+    buildPanel();
+    root.classList.add('ms-open');
+    const finePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+    if (finePointer) panel.querySelector('.ms-search').focus();
+  }
+  function close() { root.classList.remove('ms-open'); }
+
+  btn.addEventListener('click', () => { if (isOpen()) close(); else open(); });
+  root.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); btn.focus(); } });
+
+  // Registra onde o clique COMEÇOU: arrastar a barra de rolagem da lista e soltar fora do
+  // painel não pode fechá-lo (o navegador dispararia um "click" fora).
+  document.addEventListener('mousedown', e => { pressStartedInside = root.contains(e.target); }, true);
+  document.addEventListener('keydown', () => { pressStartedInside = false; }, true);
+  document.addEventListener('click', e => {
+    if (!isOpen() || pressStartedInside) return;
+    if (!root.contains(e.target)) close();
+  });
+
+  return {
+    setOptions(newOptions) {
+      const key = JSON.stringify(newOptions);
+      if (key === optionsKey) return;
+      optionsKey = key;
+      options = newOptions;
+      updateButtonText();
+      if (isOpen()) buildPanel();
+    },
+    getSelected() { return selected; },
+    reset() { selected = null; updateButtonText(); if (isOpen()) syncChecks(); }
+  };
+}
+
+
+
+// Gera a lista de meses ("YYYY-MM") entre start e end, inclusive. Limita a 12 meses
+// para manter o comparativo legível; se o intervalo for maior, corta a partir do início.
+function getMonthsInRange(startValue, endValue) {
+  const [sy, sm] = startValue.split('-').map(Number);
+  const [ey, em] = endValue.split('-').map(Number);
+  let cursor = new Date(sy, sm - 1, 1);
+  const end = new Date(ey, em - 1, 1);
+  const months = [];
+  while (cursor <= end && months.length < 12) {
+    months.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return months;
+}
+
+function computeComparison(startValue, endValue) {
+  const months = getMonthsInRange(startValue, endValue);
+  // medicamento -> { mesValue: quantidade }
+  const data = {};
+  months.forEach(monthValue => {
+    const [y, m] = monthValue.split('-').map(Number);
+    const agg = aggregateRecordsByMonth(y, m);
+    Object.keys(agg).forEach(medicamento => {
+      if (!data[medicamento]) data[medicamento] = {};
+      data[medicamento][monthValue] = agg[medicamento].quantidade;
+    });
+  });
+  const rows = Object.keys(data).map(medicamento => {
+    const values = months.map(mv => data[medicamento][mv] || 0);
+    const total = values.reduce((s, v) => s + v, 0);
+    return { medicamento, values, total };
+  }).sort((a, b) => b.total - a.total);
+  return { months, rows };
+}
+
+function renderComparison() {
+  const startInput = document.getElementById('compareStart');
+  const endInput = document.getElementById('compareEnd');
+  if (!startInput.value || !endInput.value) return;
+
+  const table = document.getElementById('compareTable');
+  if (startInput.value > endInput.value) {
+    table.querySelector('thead tr').innerHTML = '';
+    table.querySelector('tbody').innerHTML = '<tr><td style="text-align:center; color:#e74c3c; padding:20px;">O mês inicial deve ser anterior (ou igual) ao mês final.</td></tr>';
+    return;
+  }
+
+  const { months, rows } = computeComparison(startInput.value, endInput.value);
+
+  const headHtml = `<th>Antibiótico</th>${months.map(mv => `<th>${formatMonthLabel(mv)}</th>`).join('')}<th>Total</th>`;
+  table.querySelector('thead tr').innerHTML = headHtml;
+
+  const tbody = table.querySelector('tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${months.length + 2}" style="text-align:center; color:#888; padding:30px;">Nenhum consumo no período selecionado para os filtros escolhidos.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td><strong>${escapeHtml(r.medicamento)}</strong></td>
+    ${r.values.map(v => `<td style="text-align:center;">${v || '—'}</td>`).join('')}
+    <td style="text-align:center; font-weight:700;">${r.total}</td>
+  </tr>`).join('');
+}
+
+let reportsReady = false;
+let msSetor = null;
+let msMeds = null;
+let lastReportData = null;
+
+function sortedUnique(list) {
+  return Array.from(new Set(list.filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+}
+
+function refreshReportFilterOptions() {
+  msSetor.setOptions(sortedUnique([...SETORES_PADRAO, ...records.map(r => r.setor)]));
+  msMeds.setOptions(sortedUnique([...MEDICAMENTOS_LISTA, ...records.map(r => r.medicamento)]));
+}
+
+function variationText(v) { return v === 'novo' ? 'Novo' : v; }
+function pctOf(part, total) { return total > 0 ? Math.round((part / total) * 100) : 0; }
+function setText(id, text) { document.getElementById(id).textContent = text; }
+
+function renderReportTimeline(recs, today) {
+  const el = document.getElementById('reportTimeline');
+  const { title, buckets } = buildTimeline(recs, reportState.periodType, reportState.anchor, reportState.countMode, today);
+  setText('reportTimelineTitle', title);
+  const max = Math.max(0, ...buckets.map(b => b.value));
+  if (max === 0) {
+    el.innerHTML = '<div class="rep-empty">Sem consumo no período para os filtros selecionados.</div>';
+    return;
+  }
+  const showValues = buckets.length <= 12;
+  el.innerHTML = buckets.map(b => {
+    const px = b.value > 0 ? Math.max(3, Math.round((b.value / max) * 100)) : 0;
+    return `<div class="rep-tl-col${b.selected ? ' sel' : ''}" title="${escapeHtml(`${b.hint}: ${b.value} unidades`)}">
+      <span class="rep-tl-val">${showValues && b.value > 0 ? b.value : ''}</span>
+      <div class="rep-tl-barwrap"><div class="rep-tl-bar" style="height:${px}px"></div></div>
+      <span class="rep-tl-lbl">${escapeHtml(b.label)}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateReportStaticTexts() {
+  const txt = PERIOD_TEXT[reportState.periodType];
+  setText('reportPrintLabel', `Relatório ${txt.report}`);
+  setText('reportTrendTitle', `Tendência ${txt.adj}`);
+  const todayTitle = { day: 'Ir para hoje', month: 'Ir para o mês atual', year: 'Ir para o ano atual' }[reportState.periodType];
+  document.getElementById('reportPeriodToday').title = todayTitle;
+  document.getElementById('reportIntro').innerHTML = reportState.countMode === 'inicio'
+    ? 'Consumo de antibióticos calculado a partir dos registros da aba <strong>Registros</strong>. Cada tratamento é contado inteiro (total de ampolas/comprimidos) na <strong>data de início</strong>.'
+    : 'Consumo de antibióticos calculado a partir dos registros da aba <strong>Registros</strong>. Cada <strong>dia de uso</strong> conta a dose diária, até a data de hoje (tratamentos suspensos contam até o término previsto).';
+}
+
+function renderReportsTab() {
+  if (!reportsReady) return;
+  const type = reportState.periodType;
+  const txt = PERIOD_TEXT[type];
+  const today = startOfDay(new Date());
+  refreshReportFilterOptions();
+  updateReportStaticTexts();
+
+  const recs = getReportRecords();
+  const range = getPeriodRange(type, reportState.anchor);
+  const prevRange = getPeriodRange(type, shiftAnchor(type, reportState.anchor, -1));
+  const cur = aggregateRange(recs, range.start, range.end, reportState.countMode, today);
+  const prev = aggregateRange(recs, prevRange.start, prevRange.end, reportState.countMode, today);
+  const rows = buildMedRows(cur, prev);
+  const sectorRows = buildSectorRows(cur);
+  const periodLabel = formatPeriodLabel(type, reportState.anchor);
+  const kpis = [];
+
+  // KPI: antibiótico mais utilizado
+  const topMed = rows[0];
+  const topMedDesc = topMed ? `${pctOf(topMed.quantidade, cur.total)}% do total ${txt.of}` : 'Sem dados no período';
+  setText('reportTopMed', topMed ? topMed.medicamento : '—');
+  setText('reportTopMedDesc', topMedDesc);
+  kpis.push({ title: 'Antibiótico Mais Utilizado', value: topMed ? topMed.medicamento : '—', desc: topMedDesc });
+
+  // KPI: via mais utilizada (em volume)
+  const viaTotals = {};
+  rows.forEach(r => { viaTotals[r.via] = (viaTotals[r.via] || 0) + r.quantidade; });
+  const topVia = Object.entries(viaTotals).sort((a, b) => b[1] - a[1])[0];
+  const topViaDesc = topVia ? `${pctOf(topVia[1], cur.total)}% do total ${txt.of}` : 'Sem dados no período';
+  setText('reportTopVia', topVia ? topVia[0] : '—');
+  setText('reportTopViaDesc', topViaDesc);
+  kpis.push({ title: 'Via Mais Utilizada', value: topVia ? topVia[0] : '—', desc: topViaDesc });
+
+  // KPI: tendência vs. período anterior
+  let trendValue, trendDesc;
+  if (prev.total > 0) {
+    const pct = ((cur.total - prev.total) / prev.total) * 100;
+    trendValue = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
+    trendDesc = `Comparado ao ${txt.prev}`;
+  } else if (cur.total > 0) {
+    trendValue = 'Novo';
+    trendDesc = `Sem consumo no ${txt.prev}`;
+  } else {
+    trendValue = '—';
+    trendDesc = 'Sem dados no período';
+  }
+  setText('reportTrend', trendValue);
+  setText('reportTrendDesc', trendDesc);
+  kpis.push({ title: `Tendência ${txt.adj}`, value: trendValue, desc: trendDesc });
+
+  // KPIs: total consumido e pacientes
+  const totalDesc = cur.total > 0 ? `unidades em ${cur.registros} tratamento${cur.registros === 1 ? '' : 's'}` : 'Sem dados no período';
+  setText('reportTotal', cur.total > 0 ? String(cur.total) : '—');
+  setText('reportTotalDesc', totalDesc);
+  kpis.push({ title: 'Total Consumido', value: cur.total > 0 ? String(cur.total) : '—', desc: totalDesc });
+  const patientsDesc = cur.pacientes.size > 0 ? 'pacientes distintos' : 'Sem dados no período';
+  setText('reportPatients', cur.pacientes.size > 0 ? String(cur.pacientes.size) : '—');
+  setText('reportPatientsDesc', patientsDesc);
+  kpis.push({ title: 'Pacientes', value: cur.pacientes.size > 0 ? String(cur.pacientes.size) : '—', desc: patientsDesc });
+
+  // Tabela: consumo por antibiótico
+  const inText = { day: 'neste dia', month: 'neste mês', year: 'neste ano' }[type];
+  const tbody = document.querySelector('#reportTable tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:30px;">Nenhum consumo encontrado ${inText} para os filtros selecionados.</td></tr>`;
+  } else {
+    const maxQty = rows[0].quantidade;
+    tbody.innerHTML = rows.map(r => {
+      const isNovo = r.variacao === 'novo';
+      const isPositive = r.variacao.startsWith('+');
+      const color = isNovo ? '#1565c0' : (isPositive ? 'green' : (r.variacao === '0%' ? '#777' : 'red'));
+      return `<tr>
+        <td>${escapeHtml(r.medicamento)}</td>
+        <td><div class="rep-qty">${r.quantidade} unidades</div><div class="rep-bar"><span style="width:${pctOf(r.quantidade, maxQty)}%"></span></div></td>
+        <td>${r.pacientes}</td>
+        <td>${escapeHtml(r.via)}</td>
+        <td style="color:${color}">${escapeHtml(variationText(r.variacao))}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Matriz: consumo de cada antibiótico em cada setor
+  const matrix = buildSectorMatrix(cur);
+  const sectorTable = document.getElementById('reportSectorTable');
+  const sHead = sectorTable.querySelector('thead');
+  const sBody = sectorTable.querySelector('tbody');
+  const sFoot = sectorTable.querySelector('tfoot');
+  if (matrix.rows.length === 0) {
+    sHead.innerHTML = '<tr><th>Antibiótico</th><th>Total</th></tr>';
+    sBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#888; padding:30px;">Sem consumo ${inText} para os filtros selecionados.</td></tr>`;
+    sFoot.innerHTML = '';
+  } else {
+    sHead.innerHTML = `<tr><th>Antibiótico</th>${matrix.setores.map(st => `<th>${escapeHtml(st)}</th>`).join('')}<th>Total</th></tr>`;
+    sBody.innerHTML = matrix.rows.map(r => {
+      const max = Math.max(...matrix.setores.map(st => r.valores[st] || 0));
+      const cells = matrix.setores.map(st => {
+        const v = r.valores[st] || 0;
+        if (v <= 0) return '<td class="rep-cell-zero">—</td>';
+        return `<td class="${v === max && matrix.setores.length > 1 ? 'rep-cell-max' : ''}">${v}</td>`;
+      }).join('');
+      return `<tr><td>${escapeHtml(r.medicamento)}</td>${cells}<td class="rep-col-total">${r.total}</td></tr>`;
+    }).join('');
+    sFoot.innerHTML =
+      `<tr><td>Total</td>${matrix.totals.map(v => `<td>${v}</td>`).join('')}<td>${matrix.totalGeral}</td></tr>` +
+      `<tr class="rep-foot-sub"><td>% do total</td>${matrix.pcts.map(v => `<td>${v}%</td>`).join('')}<td>100%</td></tr>` +
+      `<tr class="rep-foot-sub"><td>Pacientes</td>${matrix.pacientes.map(v => `<td>${v}</td>`).join('')}<td>${matrix.pacientesTotal}</td></tr>`;
+  }
+
+  renderReportTimeline(recs, today);
+
+  // Resumo dos filtros ativos
+  const setorTxt = describeSelection(reportState.setores, 'Todos os setores', 'setores', 3);
+  const medTxt = describeSelection(reportState.meds, 'Todos os antibióticos', 'antibióticos', 2);
+  const modeTxt = reportState.countMode === 'inicio' ? 'por início do tratamento' : 'por dias de uso';
+  setText('reportFilterSummary', `${txt.report}: ${periodLabel}  •  Setor: ${setorTxt}  •  Antibióticos: ${medTxt}  •  Contagem ${modeTxt}`);
+  document.getElementById('reportClearFilters').classList.toggle('visible', reportState.setores !== null || reportState.meds !== null);
+
+  const a = reportState.anchor;
+  const fileKey = type === 'day' ? toDateInputValue(a) : (type === 'month' ? `${a.getFullYear()}-${pad2(a.getMonth() + 1)}` : String(a.getFullYear()));
+  lastReportData = { type, reportName: `Relatorio ${txt.report}`, periodLabel, setorTxt, medTxt, modeTxt, kpis, rows, sectorRows, matrix, total: cur.total, fileKey };
+}
+
+function syncPeriodControls() {
+  const type = reportState.periodType;
+  const a = reportState.anchor;
+  const input = document.getElementById('relatorio-periodo');
+  input.removeAttribute('min'); input.removeAttribute('max'); input.removeAttribute('step');
+  if (type === 'day') {
+    input.type = 'date';
+    input.value = toDateInputValue(a);
+  } else if (type === 'month') {
+    input.type = 'month';
+    input.value = `${a.getFullYear()}-${pad2(a.getMonth() + 1)}`;
+  } else {
+    input.type = 'number';
+    input.min = '2000'; input.max = '2100'; input.step = '1';
+    input.value = String(a.getFullYear());
+  }
+  setText('reportPeriodLabel', type === 'day' ? 'Dia' : (type === 'month' ? 'Mês de referência' : 'Ano'));
+  document.getElementById('reportPeriodType').value = type;
+}
+
+function onReportFiltersChanged() {
+  renderReportsTab();
+  renderComparison();
+}
+
+function printReport() {
+  const d = lastReportData;
+  if (!d) return;
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showNotification('Habilite pop-ups para gerar o relatório.', 'error');
+    return;
+  }
+  const orientation = document.getElementById('printOrientationRelatorios').value;
+  const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
+  const reportWord = PERIOD_TEXT[d.type].report;
+
+  const kpiHtml = d.kpis.map(k => `<div class="kpi">
+      <div class="kpi-title">${escapeHtml(k.title)}</div>
+      <div class="kpi-value">${escapeHtml(k.value)}</div>
+      <div class="kpi-desc">${escapeHtml(k.desc)}</div>
+    </div>`).join('');
+
+  const medRowsHtml = d.rows.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:#999;">Nenhum consumo encontrado para os filtros selecionados.</td></tr>'
+    : d.rows.map(r => {
+        const v = variationText(r.variacao);
+        const isPositive = v.startsWith('+') || v === 'Novo';
+        const neutral = v === '0%';
+        const badgeBg = neutral ? '#eceff1' : (isPositive ? '#e8f5e9' : '#ffebee');
+        const badgeColor = neutral ? '#607d8b' : (isPositive ? '#2e7d32' : '#c62828');
+        const arrow = v === 'Novo' ? '●' : (neutral ? '–' : (isPositive ? '▲' : '▼'));
+        return `<tr>
+          <td><strong>${escapeHtml(r.medicamento)}</strong></td>
+          <td>${r.quantidade} unidades</td>
+          <td>${r.pacientes}</td>
+          <td>${escapeHtml(r.via)}</td>
+          <td><span class="var-pill" style="background:${badgeBg};color:${badgeColor};">${arrow} ${escapeHtml(v)}</span></td>
+        </tr>`;
+      }).join('');
+
+  const m = d.matrix;
+  const sectorHeadHtml = `<tr><th>Antibiótico</th>${m.setores.map(st => `<th class="c">${escapeHtml(st)}</th>`).join('')}<th class="c">Total</th></tr>`;
+  const sectorBodyHtml = m.rows.length === 0
+    ? `<tr><td colspan="${m.setores.length + 2}" style="text-align:center;color:#999;">Sem consumo no período.</td></tr>`
+    : m.rows.map(r => {
+        const max = Math.max(...m.setores.map(st => r.valores[st] || 0));
+        const cells = m.setores.map(st => {
+          const v = r.valores[st] || 0;
+          return v > 0 ? `<td class="c${v === max && m.setores.length > 1 ? ' mx' : ''}">${v}</td>` : '<td class="c z">—</td>';
+        }).join('');
+        return `<tr><td><strong>${escapeHtml(r.medicamento)}</strong></td>${cells}<td class="c tt">${r.total}</td></tr>`;
+      }).join('');
+  const sectorFootHtml = m.rows.length === 0 ? '' :
+    `<tr class="tf"><td>Total</td>${m.totals.map(v => `<td class="c">${v}</td>`).join('')}<td class="c">${m.totalGeral}</td></tr>` +
+    `<tr class="tf2"><td>% do total</td>${m.pcts.map(v => `<td class="c">${v}%</td>`).join('')}<td class="c">100%</td></tr>` +
+    `<tr class="tf2"><td>Pacientes</td>${m.pacientes.map(v => `<td class="c">${v}</td>`).join('')}<td class="c">${m.pacientesTotal}</td></tr>`;
+
+  printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <title>Relatório ${escapeHtml(reportWord)}</title>
+    <style>
+      :root { --primary:#2c3e50; --secondary:#3498db; --success:#2ecc71; --warning:#f39c12; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
+      .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 16px; }
+      .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
+      .report-header .subtitle { font-size: 13px; color: #777; }
+      .report-header .meta { text-align: right; font-size: 12px; color: #777; }
+      .filters-info { font-size: 12px; color: #555; background: #f8f9fb; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; line-height: 1.7; }
+      .kpis { display:flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+      .kpi { flex: 1 1 140px; background: #f8f9fb; border-radius: 10px; padding: 14px 16px; border-top: 4px solid var(--secondary); }
+      .kpi:nth-child(2) { border-top-color: var(--success); }
+      .kpi:nth-child(3) { border-top-color: var(--warning); }
+      .kpi:nth-child(4) { border-top-color: #e74c3c; }
+      .kpi-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: #888; font-weight: 600; margin-bottom: 6px; }
+      .kpi-value { font-size: 19px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+      .kpi-desc { font-size: 11.5px; color: #999; }
+      .section-title { font-size: 14px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 10px 2px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border: 1px solid #e2e2e2; padding: 9px 12px; text-align: left; }
+      th { background-color: var(--primary); color: #fff; font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; }
+      tbody tr:nth-child(even) { background: #f8f9fb; }
+      tr { page-break-inside: avoid; }
+      .c { text-align: center; }
+      .z { color: #c3c8ce; }
+      .mx { font-weight: 700; background: #eaf4fc; color: var(--primary); }
+      .tt { font-weight: 700; background: #f4f6f8; }
+      .tf td { font-weight: 700; background: #eef1f4; border-top: 2px solid #cfd6dd; }
+      .tf2 td { color: #555; background: #fafbfc; }
+      .var-pill { display:inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+      .report-footer { margin-top: 24px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+      @media print {
+        body { padding: 12mm 14mm; }
+        ${buildPageRule(orientation)}
+      }
+    </style></head><body>
+    <div class="report-header">
+      <div>
+        <h1>${escapeHtml(hospitalName)}</h1>
+        <div class="subtitle">Relatório ${escapeHtml(reportWord)} de Antibióticos — ${escapeHtml(d.periodLabel)}</div>
+      </div>
+      <div class="meta">
+        Emitido por: Farmácia Clínica<br>
+        ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      </div>
+    </div>
+    <div class="filters-info">
+      <strong>Setor:</strong> ${escapeHtml(d.setorTxt)} &nbsp;|&nbsp;
+      <strong>Antibióticos:</strong> ${escapeHtml(d.medTxt)} &nbsp;|&nbsp;
+      <strong>Contagem:</strong> ${escapeHtml(d.modeTxt)}
+    </div>
+
+    <div class="kpis">${kpiHtml}</div>
+
+    <div class="section-title">Consumo por Antibiótico</div>
+    <table>
+      <thead><tr><th>Antibiótico</th><th>Quantidade</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr></thead>
+      <tbody>${medRowsHtml}</tbody>
+    </table>
+
+    <div class="section-title">Consumo por Antibiótico em cada Setor</div>
+    <table>
+      <thead>${sectorHeadHtml}</thead>
+      <tbody>${sectorBodyHtml}</tbody>
+      <tfoot>${sectorFootHtml}</tfoot>
+    </table>
+
+    <div class="report-footer">
+      <span>Documento gerado automaticamente pelo Sistema de Controle de Antibióticos.</span>
+      <span>Período de referência: ${escapeHtml(d.periodLabel)}</span>
+    </div>
+    </body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function csvCell(v) { return `"${String(v === undefined || v === null ? '' : v).replace(/"/g, '""')}"`; }
+
+function exportReport() {
+  const d = lastReportData;
+  if (!d || d.rows.length === 0) {
+    showNotification('Não há dados no período e filtros selecionados para exportar.', 'error');
+    return;
+  }
+  const lines = [];
+  lines.push([csvCell('Relatorio'), csvCell(`${d.reportName.replace('Relatorio ', '')} - ${d.periodLabel}`)].join(','));
+  lines.push([csvCell('Setor'), csvCell(d.setorTxt)].join(','));
+  lines.push([csvCell('Antibioticos'), csvCell(d.medTxt)].join(','));
+  lines.push([csvCell('Contagem'), csvCell(d.modeTxt)].join(','));
+  lines.push('');
+  lines.push('Antibiotico,Quantidade,Pacientes,Via Mais Frequente,Variacao');
+  d.rows.forEach(r => lines.push([csvCell(r.medicamento), r.quantidade, r.pacientes, csvCell(r.via), csvCell(variationText(r.variacao))].join(',')));
+  lines.push('');
+  const m = d.matrix;
+  lines.push(['Antibiotico por Setor', ...m.setores.map(csvCell), csvCell('Total')].join(','));
+  m.rows.forEach(r => lines.push([csvCell(r.medicamento), ...m.setores.map(st => r.valores[st] || 0), r.total].join(',')));
+  lines.push([csvCell('Total'), ...m.totals, m.totalGeral].join(','));
+  lines.push([csvCell('% do total'), ...m.pcts, 100].join(','));
+  lines.push([csvCell('Pacientes'), ...m.pacientes, m.pacientesTotal].join(','));
+  // BOM no início para o Excel reconhecer os acentos (UTF-8)
+  downloadFile('\uFEFF' + lines.join('\r\n') + '\r\n', `relatorio_antibioticos_${d.type}_${d.fileKey}.csv`, 'text/csv;charset=utf-8;');
+  showNotification('Relatório exportado com sucesso!', 'success');
+}
+
+function setupReportsTab() {
+  msSetor = createMultiSelect(document.getElementById('msSetor'), {
+    allText: 'Todos os setores', noun: 'setores',
+    onChange: sel => { reportState.setores = sel; onReportFiltersChanged(); }
+  });
+  msMeds = createMultiSelect(document.getElementById('msMeds'), {
+    allText: 'Todos os antibióticos', noun: 'antibióticos',
+    onChange: sel => { reportState.meds = sel; onReportFiltersChanged(); }
+  });
+  reportsReady = true;
+  syncPeriodControls();
+  renderReportsTab();
+
+  const periodInput = document.getElementById('relatorio-periodo');
+  periodInput.addEventListener('change', () => {
+    const v = periodInput.value;
+    const type = reportState.periodType;
+    let a = null;
+    if (v) {
+      if (type === 'day') { const [y, m, d] = v.split('-').map(Number); a = new Date(y, m - 1, d); }
+      else if (type === 'month') { const [y, m] = v.split('-').map(Number); a = new Date(y, m - 1, 1); }
+      else { const y = parseInt(v, 10); if (y >= 2000 && y <= 2100) a = new Date(y, 0, 1); }
+    }
+    if (!a || isNaN(a.getTime())) { syncPeriodControls(); return; } // valor inválido/vazio: volta ao anterior
+    reportState.anchor = a;
+    onReportFiltersChanged();
+  });
+
+  document.getElementById('reportPeriodType').addEventListener('change', e => {
+    const newType = e.target.value;
+    if (newType === 'day') {
+      // Ao passar para "Diário", usa hoje se ele estiver dentro do período que estava selecionado.
+      const prevRange = getPeriodRange(reportState.periodType, reportState.anchor);
+      const today = startOfDay(new Date());
+      reportState.anchor = (today >= prevRange.start && today <= prevRange.end) ? today : prevRange.start;
+    }
+    reportState.periodType = newType;
+    syncPeriodControls();
+    onReportFiltersChanged();
+  });
+
+  document.getElementById('reportPeriodPrev').addEventListener('click', () => {
+    reportState.anchor = shiftAnchor(reportState.periodType, reportState.anchor, -1);
+    syncPeriodControls(); onReportFiltersChanged();
+  });
+  document.getElementById('reportPeriodNext').addEventListener('click', () => {
+    reportState.anchor = shiftAnchor(reportState.periodType, reportState.anchor, 1);
+    syncPeriodControls(); onReportFiltersChanged();
+  });
+  document.getElementById('reportPeriodToday').addEventListener('click', () => {
+    reportState.anchor = startOfDay(new Date());
+    syncPeriodControls(); onReportFiltersChanged();
+  });
+  document.getElementById('reportCountMode').addEventListener('change', e => {
+    reportState.countMode = e.target.value;
+    onReportFiltersChanged();
+  });
+  document.getElementById('reportClearFilters').addEventListener('click', () => {
+    msSetor.reset(); msMeds.reset();
+    reportState.setores = null; reportState.meds = null;
+    onReportFiltersChanged();
+  });
+
+  // Comparativo entre meses: padrão = últimos 3 meses (mês atual e os 2 anteriores)
+  const compareStart = document.getElementById('compareStart');
+  const compareEnd = document.getElementById('compareEnd');
+  const now = new Date();
+  const defaultStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  compareEnd.value = getCurrentMonthValue();
+  compareStart.value = `${defaultStart.getFullYear()}-${String(defaultStart.getMonth() + 1).padStart(2, '0')}`;
+  renderComparison();
+  compareStart.addEventListener('change', renderComparison);
+  compareEnd.addEventListener('change', renderComparison);
+
+  document.getElementById('reportMonthlyBtn').addEventListener('click', printReport);
+  document.getElementById('reportExportBtn').addEventListener('click', exportReport);
+}
+
+
+/* ==========================================================================
+   ABA CONFIGURAÇÕES
+   ========================================================================== */
+function setupConfigTab() {
+  document.getElementById('saveConfigBtn').addEventListener('click', () => {
+    const config = {
+      systemName: document.getElementById('system-name').value.trim() || 'AC - Sistemas e Soluções',
+      notifyExpiration: document.getElementById('notifyExpiration').checked,
+      notifyInteractions: document.getElementById('notifyInteractions').checked,
+      notifyProtocols: document.getElementById('notifyProtocols').checked
+    };
+    setDoc(configDocRef, config, { merge: true })
+      .then(() => showNotification('Configurações salvas com sucesso!', 'success'))
+      .catch(err => {
+        console.error('Erro ao salvar configurações:', err);
+        showNotification('Erro ao salvar no servidor. Tente novamente.', 'error');
+      });
+  });
+
+  document.getElementById('cancelConfigBtn').addEventListener('click', () => {
+    applyConfig(currentConfig);
+    showNotification('Alterações descartadas.', 'success');
+  });
+
+  document.getElementById('backupBtn').addEventListener('click', () => {
+    const backup = {
+      generatedAt: new Date().toISOString(),
+      records,
+      config: currentConfig
+    };
+    downloadFile(JSON.stringify(backup, null, 2), `backup_antibioticos_${Date.now()}.json`, 'application/json');
+    const nowIso = new Date().toISOString();
+    setDoc(configDocRef, { lastBackupAt: nowIso }, { merge: true }).catch(err => console.error('Erro ao registrar data do backup:', err));
+    updateBackupStatus(nowIso);
+    showNotification('Backup gerado com sucesso!', 'success');
+  });
+
+  const restoreInput = document.getElementById('restoreFileInput');
+  document.getElementById('restoreBtn').addEventListener('click', () => restoreInput.click());
+  restoreInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      try {
+        const backup = JSON.parse(e.target.result);
+        if (!Array.isArray(backup.records)) throw new Error('Arquivo de backup inválido.');
+        if (!confirm('Isso substituirá todos os registros atuais (em todos os dispositivos) pelos dados do backup. Continuar?')) return;
+
+        // Remove todos os registros atuais no Firestore e grava os do backup, em lotes de até 400 operações.
+        const currentSnapshot = await getDocs(recordsCollection);
+        const deleteOps = currentSnapshot.docs.map(d => ({ type: 'delete', ref: d.ref }));
+        const setOps = backup.records.map(r => ({ type: 'set', ref: doc(recordsCollection, r.id), data: r }));
+        const allOps = [...deleteOps, ...setOps];
+        for (let i = 0; i < allOps.length; i += 400) {
+          const batch = writeBatch(db);
+          allOps.slice(i, i + 400).forEach(op => {
+            if (op.type === 'delete') batch.delete(op.ref);
+            else batch.set(op.ref, op.data);
+          });
+          await batch.commit();
+        }
+
+        if (backup.config) {
+          await setDoc(configDocRef, backup.config, { merge: true });
+        }
+
+        currentPage = 1;
+        showNotification('Backup restaurado com sucesso!', 'success');
+      } catch (err) {
+        console.error('Erro ao restaurar backup:', err);
+        showNotification('Falha ao restaurar backup: arquivo inválido ou erro de conexão.', 'error');
+      } finally {
+        restoreInput.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+// Calcula há quanto tempo foi o último backup (campo compartilhado no Firestore) e
+// atualiza o texto + selo na aba Configurações. Sem cor de alarme antes de 7 dias.
+function updateBackupStatus(lastBackupAt) {
+  const valueEl = document.getElementById('lastBackupValue');
+  const badgeEl = document.getElementById('lastBackupBadge');
+  if (!valueEl || !badgeEl) return;
+
+  if (!lastBackupAt) {
+    valueEl.textContent = 'Nenhum backup realizado ainda';
+    badgeEl.textContent = 'Sem backup';
+    badgeEl.className = 'backup-badge never';
+    return;
+  }
+
+  const date = new Date(lastBackupAt);
+  const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+  valueEl.textContent = `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+  if (diffDays <= 7) {
+    badgeEl.textContent = 'Em dia';
+    badgeEl.className = 'backup-badge ok';
+  } else if (diffDays <= 30) {
+    badgeEl.textContent = `Há ${diffDays} dias`;
+    badgeEl.className = 'backup-badge warn';
+  } else {
+    badgeEl.textContent = `Há ${diffDays} dias — desatualizado`;
+    badgeEl.className = 'backup-badge never';
+  }
+}
+
+function applyConfig(config) {
+  if (config.systemName) {
+    document.getElementById('system-name').value = config.systemName;
+    document.getElementById('hospitalTitle').textContent = config.systemName;
+    document.title = `Sistema de Controle de Antibióticos - ${config.systemName}`;
+  }
+  if ('notifyExpiration' in config) document.getElementById('notifyExpiration').checked = !!config.notifyExpiration;
+  if ('notifyInteractions' in config) document.getElementById('notifyInteractions').checked = !!config.notifyInteractions;
+  if ('notifyProtocols' in config) document.getElementById('notifyProtocols').checked = !!config.notifyProtocols;
+}
+</script>
+</body>
+</html>
