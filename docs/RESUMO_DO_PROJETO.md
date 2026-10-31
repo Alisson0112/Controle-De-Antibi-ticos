@@ -114,3 +114,19 @@ Atualizado em 23/10/2026. Este arquivo resume tudo o que foi feito na conversa, 
 ## 8. Texto para retomar em outra conversa
 
 > Tenho um sistema web de controle de antibióticos (arquivo único `index.html`, com Firebase Firestore/Auth, hospedado no Cloudflare). Tem abas de Registros, Estoque, Protocolo de Infusão, Relatórios e Configurações. O campo Medicamento usa uma lista fixa de 32 itens. O "Tratamento em Andamento" do Estoque soma a quantidade que ainda falta usar (dose diária × dias restantes). Os Relatórios têm período diário/mensal/anual, filtros de setor e antibióticos, matriz antibiótico × setor, impressão e CSV. Segue o `index.html` atual e o resumo do projeto. Quero continuar de onde paramos.
+
+## 9. Melhorias de 31/10/2026 (auditoria do código)
+
+Correções de bugs:
+- **Estoque digitado à mão era perdido:** era gravado como texto e ignorado ao recarregar (voltava o valor fixo do código). Agora é gravado como número, e os valores antigos em texto passam a ser lidos.
+- **Data padrão errada depois das 21h:** o cálculo em UTC preenchia a data de amanhã. Agora usa a data local, inclusive no cálculo do término.
+- **Finalização automática** passou a alterar só o status (antes regravava o registro inteiro e podia desfazer uma edição simultânea).
+- **CSV dos Registros:** acentos corretos no Excel (BOM) e aspas tratadas.
+
+Melhorias:
+- **Backup completo** (registros, estoque e configurações) e restauração segura (validação, resumo, backup de segurança automático, grava antes de apagar).
+- **Auditoria:** quem criou e quem alterou cada registro e item de estoque.
+- **Conferência ao salvar:** avisa possível duplicado, ampola diária menor que as doses da posologia, duração acima de 30 dias e datas incoerentes.
+- **Aviso de vencimento** na aba Registros (tratamentos ativos que terminam hoje ou amanhã).
+- Removidas as opções "Interações medicamentosas" e "Novos protocolos", que não tinham nenhuma função no código.
+- Rodapé corrigido, com o ano atual.

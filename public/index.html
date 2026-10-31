@@ -136,6 +136,14 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 .stock-tratamento-value { display: inline-block; min-width: 50px; text-align: center; font-weight: 600; color: #555; background: #f0f2f5; border-radius: 6px; padding: 6px 8px; }
 .stock-unmatched-warning { background: #fff8e1; border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: 6px; font-size: 12.5px; color: #555; margin-bottom: 15px; }
 .stock-unmatched-warning strong { color: var(--accent); }
+.expiring-alert { background: #eaf4fc; border-left: 4px solid var(--secondary); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: #34495e; margin-bottom: 15px; }
+.expiring-alert summary { cursor: pointer; list-style: none; }
+.expiring-alert summary::-webkit-details-marker { display: none; }
+.expiring-alert .exp-hint { color: var(--secondary); font-size: 12px; margin-left: 6px; }
+.expiring-alert ul { margin: 10px 0 2px; padding-left: 0; list-style: none; display: grid; gap: 6px; }
+.expiring-alert li { font-size: 12.5px; }
+.expiring-alert .exp-when { display: inline-block; min-width: 62px; text-align: center; padding: 1px 8px; border-radius: 10px; background: #fff3e0; color: #e65100; font-weight: 700; font-size: 11px; margin-right: 6px; }
+.expiring-alert .exp-when.today { background: #ffebee; color: #c62828; }
 
 /* Aba Configurações */
 .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
@@ -342,6 +350,8 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div class="card-description">Tratamentos concluídos</div>
 </div>
 </div>
+
+<div class="expiring-alert" id="expiringAlert" style="display:none;"></div>
 
 <div class="filters">
 <div class="filter-group">
@@ -728,21 +738,7 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <input type="checkbox" id="notifyExpiration" checked>
 <span class="notify-text">
 <span class="notify-title">Tratamentos próximos do vencimento</span>
-<span class="notify-desc">Avisa quando um tratamento está perto do término</span>
-</span>
-</label>
-<label class="notify-option">
-<input type="checkbox" id="notifyInteractions" checked>
-<span class="notify-text">
-<span class="notify-title">Interações medicamentosas</span>
-<span class="notify-desc">Alerta sobre combinações de risco entre antibióticos</span>
-</span>
-</label>
-<label class="notify-option">
-<input type="checkbox" id="notifyProtocols">
-<span class="notify-text">
-<span class="notify-title">Novos protocolos</span>
-<span class="notify-desc">Notifica quando um protocolo é atualizado</span>
+<span class="notify-desc">Mostra na aba Registros os tratamentos ativos que terminam hoje ou amanhã</span>
 </span>
 </label>
 </div>
@@ -813,7 +809,7 @@ Faça um backup antes de rodar essa ferramenta. Recomendado gerar um backup (bot
 </div>
 </div>
 
-<footer>Sistema de Controle de Antibióticos - AC - Sistemas e Soluções &copy; 2025</footer>
+<footer>Sistema de Controle de Antibióticos · AC - Sistemas e Soluções &copy; <span id="footerYear">2026</span></footer>
 </div>
 
 <!-- Modal para adicionar/editar registros -->
@@ -962,7 +958,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs
+  getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1023,6 +1019,11 @@ function showLoginScreen() {
   document.getElementById('appContainer').classList.remove('visible');
 }
 
+// E-mail do usuário logado, gravado nos campos de auditoria (createdBy/updatedBy).
+function currentUserEmail() {
+  return (auth.currentUser && auth.currentUser.email) || 'desconhecido';
+}
+
 function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContainer').classList.add('visible');
@@ -1041,6 +1042,7 @@ function startFirestoreListeners() {
     renderReportsTab();
     renderComparison();
     recomputeStockTratamento();
+    renderExpiringAlert();
   }, err => {
     console.error('Erro ao sincronizar registros:', err);
     showNotification('Erro ao sincronizar registros com o servidor.', 'error');
@@ -1136,6 +1138,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirm('Deseja realmente sair?')) signOut(auth);
   });
 
+  const footerYear = document.getElementById('footerYear');
+  if (footerYear) footerYear.textContent = new Date().getFullYear();
+
   setupMedicamentoCombobox();
   setupMedMigration();
 
@@ -1144,12 +1149,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // o caso de a aba ficar aberta durante a virada do dia, ou de ninguém mexer
   // no sistema no dia exato em que um tratamento avança/termina.
   setInterval(() => {
-    if (typeof records !== 'undefined' && records.length) recomputeStockTratamento();
+    if (typeof records !== 'undefined' && records.length) { recomputeStockTratamento(); renderExpiringAlert(); }
   }, 15 * 60 * 1000); // a cada 15 minutos
 });
 
+// Data de hoje no fuso do computador, no formato do <input type="date"> (AAAA-MM-DD).
+// Não usar toISOString(): ele converte para UTC e, no Brasil (UTC-3), depois das
+// 21h já devolve a data do dia seguinte.
+function todayInputValue() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayInputValue();
   document.getElementById('inputData').value = today;
   document.getElementById('inputInicio').value = today;
 }
@@ -1565,7 +1578,14 @@ function autoFinalizeExpiredTreatments() {
     if (record.status === 'Ativo' && isTreatmentExpired(record.termino)) {
       record.status = 'Finalizado';
       changed = true;
-      setDoc(doc(recordsCollection, record.id), record).catch(err => {
+      // updateDoc altera SÓ o status. O setDoc anterior regravava o registro inteiro
+      // a partir da cópia local e podia desfazer uma edição feita ao mesmo tempo
+      // em outro computador.
+      updateDoc(doc(recordsCollection, record.id), {
+        status: 'Finalizado',
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'finalização automática'
+      }).catch(err => {
         console.error('Erro ao auto-finalizar tratamento:', err);
       });
     }
@@ -1573,10 +1593,13 @@ function autoFinalizeExpiredTreatments() {
   return changed;
 }
 
+// startDate no formato AAAA-MM-DD. Calcula tudo em data local (sem passar por UTC),
+// para o resultado não depender do fuso nem de horário de verão.
 function calculateEndDate(startDate, days) {
-  const date = new Date(startDate);
+  const [y, m, d] = String(startDate).split('-').map(Number);
+  const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function formatDateForDisplay(dateString) {
@@ -1699,6 +1722,8 @@ function saveRecord() {
   if (foiAutoFinalizado) status = 'Finalizado';
 
   const id = currentRecordId || ('ABX' + Date.now().toString(36).toUpperCase());
+  const existing = currentRecordId ? records.find(r => r.id === currentRecordId) : null;
+  const nowIso = new Date().toISOString();
 
   const payload = {
     id,
@@ -1707,8 +1732,19 @@ function saveRecord() {
     inicio: formatDateForDisplay(inicio),
     duracao: `${duracao} dias`,
     termino: terminoDisplay,
-    ampolaDiaria, totalAmpolas, status
+    ampolaDiaria, totalAmpolas, status,
+    // Auditoria: quem criou e quem alterou por último (registros antigos não têm createdBy).
+    createdAt: (existing && existing.createdAt) || nowIso,
+    createdBy: (existing && existing.createdBy) || (existing ? 'anterior à auditoria' : currentUserEmail()),
+    updatedAt: nowIso,
+    updatedBy: currentUserEmail()
   };
+
+  // Avisos de qualidade dos dados (não bloqueiam: o farmacêutico confirma ou corrige).
+  const warnings = getRecordWarnings(payload, inicio, dataRegistro);
+  if (warnings.length && !confirm('Confira antes de salvar:\n\n• ' + warnings.join('\n• ') + '\n\nSalvar assim mesmo?')) {
+    return;
+  }
 
   const sufixoAutoFinalizado = foiAutoFinalizado
     ? ' Status ajustado automaticamente para "Finalizado" (término já vencido).'
@@ -1727,6 +1763,46 @@ function saveRecord() {
       showNotification('Erro ao salvar no servidor. Verifique sua conexão e tente novamente.', 'error');
     })
     .finally(() => { saveBtn.disabled = false; });
+}
+
+// Doses por dia de cada posologia, para conferir a "Ampola Diária".
+const DOSES_POR_DIA = { '24/24h': 1, '12/12h': 2, '8/8h': 3, '6/6h': 4, '4/4h': 6, '3/3h': 8 };
+
+// Regras de conferência ao salvar. Encontradas na análise dos 800 registros:
+// duplicados, ampola diária menor que o nº de doses, datas incoerentes e durações atípicas.
+// inicioIso e dataRegistroIso vêm do <input type="date"> (AAAA-MM-DD).
+function getRecordWarnings(payload, inicioIso, dataRegistroIso) {
+  const warnings = [];
+  const norm = s => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+
+  const duplicate = records.find(r =>
+    r.id !== payload.id &&
+    r.status !== 'Finalizado' &&
+    norm(r.paciente) === norm(payload.paciente) &&
+    r.medicamento === payload.medicamento &&
+    r.inicio === payload.inicio
+  );
+  if (duplicate) {
+    warnings.push(`Já existe um registro de ${payload.medicamento} para este paciente com início em ${payload.inicio} (status ${duplicate.status}). Pode ser duplicado.`);
+  }
+
+  const doses = DOSES_POR_DIA[payload.posologia];
+  if (doses && payload.ampolaDiaria < doses) {
+    warnings.push(`Ampola diária (${payload.ampolaDiaria}) é menor que o número de doses da posologia ${payload.posologia} (${doses} por dia).`);
+  }
+
+  const duracaoDias = parseInt(payload.duracao, 10);
+  if (duracaoDias > 30) {
+    warnings.push(`Duração de ${duracaoDias} dias é maior que o habitual (até 30 dias).`);
+  }
+
+  if (inicioIso && dataRegistroIso) {
+    const diff = Math.round((new Date(inicioIso + 'T00:00:00') - new Date(dataRegistroIso + 'T00:00:00')) / 86400000);
+    if (diff > 3) warnings.push(`O início (${payload.inicio}) está ${diff} dias depois da data do registro (${payload.dataRegistro}). Confira o mês/dia.`);
+    if (diff < -30) warnings.push(`O início (${payload.inicio}) está ${-diff} dias antes da data do registro (${payload.dataRegistro}). Confira o mês/dia.`);
+  }
+
+  return warnings;
 }
 
 function validateForm() {
@@ -1822,11 +1898,12 @@ function escapeHtml(value) {
    ========================================================================== */
 function exportToCSV() {
   const filtered = getFilteredRecords();
-  let csvContent = "ID,Data Registro,Setor,Paciente,Medicamento,Via,Dosagem,Tratamento,Posologia,Início,Duração,Término,Ampola Diária,Total Ampolas,Status\n";
-  filtered.forEach(record => {
-    csvContent += `"${record.id}","${record.dataRegistro}","${record.setor}","${record.paciente}","${record.medicamento}","${record.via}","${record.dosagem}","${record.tratamento || ''}","${record.posologia}","${record.inicio}","${record.duracao}","${record.termino}","${record.ampolaDiaria}","${record.totalAmpolas}","${record.status}"\n`;
-  });
-  downloadFile(csvContent, 'controle_antibioticos.csv', 'text/csv;charset=utf-8;');
+  const header = ['ID', 'Data Registro', 'Setor', 'Paciente', 'Medicamento', 'Via', 'Dosagem', 'Tratamento', 'Posologia', 'Início', 'Duração', 'Término', 'Ampola Diária', 'Total Ampolas', 'Status'];
+  const fields = ['id', 'dataRegistro', 'setor', 'paciente', 'medicamento', 'via', 'dosagem', 'tratamento', 'posologia', 'inicio', 'duracao', 'termino', 'ampolaDiaria', 'totalAmpolas', 'status'];
+  const lines = [header.map(csvCell).join(',')];
+  filtered.forEach(record => lines.push(fields.map(f => csvCell(record[f])).join(',')));
+  // csvCell escapa aspas internas; o BOM faz o Excel reconhecer os acentos (UTF-8).
+  downloadFile('﻿' + lines.join('\r\n') + '\r\n', 'controle_antibioticos.csv', 'text/csv;charset=utf-8;');
   showNotification(`${filtered.length} registro(s) exportado(s) com sucesso!`, 'success');
 }
 
@@ -2427,8 +2504,11 @@ function applyStockSnapshot(snapshot) {
     // Não sobrescreve enquanto o próprio usuário está digitando nesta linha.
     if (document.activeElement === estoqueInput) return;
 
-    if (remote[cod] && Number.isFinite(remote[cod].estoque)) {
-      estoqueInput.value = remote[cod].estoque;
+    // Aceita número ou texto numérico: versões anteriores gravavam o valor digitado
+    // à mão como texto ("52"), que antes era ignorado aqui e voltava ao valor fixo.
+    const remoteEstoque = remote[cod] ? Number(remote[cod].estoque) : NaN;
+    if (remote[cod] && remote[cod].estoque !== '' && Number.isFinite(remoteEstoque)) {
+      estoqueInput.value = remoteEstoque;
     } else if (stockOriginalValues[cod] !== undefined) {
       estoqueInput.value = stockOriginalValues[cod];
     }
@@ -2437,11 +2517,22 @@ function applyStockSnapshot(snapshot) {
 }
 
 // Grava o Estoque no Firestore com debounce (evita uma escrita a cada tecla digitada).
-function saveStockRow(cod, estoque) {
+// Sempre grava como NÚMERO inteiro (o valor do <input> vem como texto). Campo vazio
+// ou inválido não é gravado, para não apagar o estoque por engano.
+function saveStockRow(cod, estoqueRaw) {
   clearTimeout(stockDebounceTimers[cod]);
+  const estoque = parseInt(String(estoqueRaw).trim(), 10);
+  if (!Number.isFinite(estoque) || estoque < 0) return;
   stockDebounceTimers[cod] = setTimeout(() => {
-    setDoc(doc(stockCollection, cod), { estoque }, { merge: true })
-      .catch(err => console.error('Erro ao salvar estoque:', err));
+    setDoc(doc(stockCollection, cod), {
+      estoque,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUserEmail()
+    }, { merge: true })
+      .catch(err => {
+        console.error('Erro ao salvar estoque:', err);
+        showNotification('Erro ao salvar o estoque no servidor. Tente novamente.', 'error');
+      });
   }, 600);
 }
 
@@ -3669,9 +3760,7 @@ function setupConfigTab() {
   document.getElementById('saveConfigBtn').addEventListener('click', () => {
     const config = {
       systemName: document.getElementById('system-name').value.trim() || 'AC - Sistemas e Soluções',
-      notifyExpiration: document.getElementById('notifyExpiration').checked,
-      notifyInteractions: document.getElementById('notifyInteractions').checked,
-      notifyProtocols: document.getElementById('notifyProtocols').checked
+      notifyExpiration: document.getElementById('notifyExpiration').checked
     };
     setDoc(configDocRef, config, { merge: true })
       .then(() => showNotification('Configurações salvas com sucesso!', 'success'))
@@ -3686,17 +3775,22 @@ function setupConfigTab() {
     showNotification('Alterações descartadas.', 'success');
   });
 
-  document.getElementById('backupBtn').addEventListener('click', () => {
-    const backup = {
-      generatedAt: new Date().toISOString(),
-      records,
-      config: currentConfig
-    };
-    downloadFile(JSON.stringify(backup, null, 2), `backup_antibioticos_${Date.now()}.json`, 'application/json');
-    const nowIso = new Date().toISOString();
-    setDoc(configDocRef, { lastBackupAt: nowIso }, { merge: true }).catch(err => console.error('Erro ao registrar data do backup:', err));
-    updateBackupStatus(nowIso);
-    showNotification('Backup gerado com sucesso!', 'success');
+  document.getElementById('backupBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('backupBtn');
+    btn.disabled = true;
+    try {
+      const backup = await buildBackupObject();
+      downloadFile(JSON.stringify(backup, null, 2), `backup_antibioticos_${Date.now()}.json`, 'application/json');
+      const nowIso = new Date().toISOString();
+      setDoc(configDocRef, { lastBackupAt: nowIso }, { merge: true }).catch(err => console.error('Erro ao registrar data do backup:', err));
+      updateBackupStatus(nowIso);
+      showNotification(`Backup gerado: ${backup.records.length} registros e ${Object.keys(backup.stock).length} itens de estoque.`, 'success');
+    } catch (err) {
+      console.error('Erro ao gerar backup:', err);
+      showNotification('Erro ao gerar o backup. Verifique a conexão e tente novamente.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   const restoreInput = document.getElementById('restoreFileInput');
@@ -3707,15 +3801,36 @@ function setupConfigTab() {
     const reader = new FileReader();
     reader.onload = async function (e) {
       try {
-        const backup = JSON.parse(e.target.result);
-        if (!Array.isArray(backup.records)) throw new Error('Arquivo de backup inválido.');
-        if (!confirm('Isso substituirá todos os registros atuais (em todos os dispositivos) pelos dados do backup. Continuar?')) return;
+        let backup;
+        try { backup = JSON.parse(e.target.result); } catch (_) { throw new Error('O arquivo não é um JSON válido.'); }
 
-        // Remove todos os registros atuais no Firestore e grava os do backup, em lotes de até 400 operações.
+        // 1) Valida TUDO antes de mexer no banco.
+        const problems = validateBackupObject(backup);
+        if (problems.length) {
+          showNotification('Backup recusado: ' + problems.slice(0, 3).join(' '), 'error');
+          return;
+        }
+        const stockEntries = backup.stock && typeof backup.stock === 'object' ? Object.entries(backup.stock) : [];
+        const geradoEm = backup.generatedAt ? new Date(backup.generatedAt).toLocaleString('pt-BR') : 'data desconhecida';
+        const resumo = `Backup de ${geradoEm}\n` +
+          `• ${backup.records.length} registros (hoje o sistema tem ${records.length})\n` +
+          (stockEntries.length ? `• ${stockEntries.length} itens de estoque\n` : '• sem dados de estoque (backup antigo): o estoque atual será mantido\n') +
+          `\nTodos os registros atuais serão SUBSTITUÍDOS pelos do backup, em todos os computadores.\n` +
+          `Antes disso, um backup de segurança do estado atual será baixado automaticamente.\n\nContinuar?`;
+        if (!confirm(resumo)) return;
+
+        // 2) Backup de segurança do estado atual, para poder desfazer.
+        const safety = await buildBackupObject();
+        downloadFile(JSON.stringify(safety, null, 2), `backup_seguranca_antes_de_restaurar_${Date.now()}.json`, 'application/json');
+
+        // 3) Grava primeiro os registros do backup e só depois apaga os que não existem
+        //    nele. Se a conexão cair no meio, nenhum registro some sem ter sido regravado.
+        const backupIds = new Set(backup.records.map(r => r.id));
         const currentSnapshot = await getDocs(recordsCollection);
-        const deleteOps = currentSnapshot.docs.map(d => ({ type: 'delete', ref: d.ref }));
         const setOps = backup.records.map(r => ({ type: 'set', ref: doc(recordsCollection, r.id), data: r }));
-        const allOps = [...deleteOps, ...setOps];
+        const stockOps = stockEntries.map(([cod, data]) => ({ type: 'set', ref: doc(stockCollection, cod), data }));
+        const deleteOps = currentSnapshot.docs.filter(d => !backupIds.has(d.id)).map(d => ({ type: 'delete', ref: d.ref }));
+        const allOps = [...setOps, ...stockOps, ...deleteOps];
         for (let i = 0; i < allOps.length; i += 400) {
           const batch = writeBatch(db);
           allOps.slice(i, i + 400).forEach(op => {
@@ -3726,20 +3841,62 @@ function setupConfigTab() {
         }
 
         if (backup.config) {
-          await setDoc(configDocRef, backup.config, { merge: true });
+          // Não restaura a data do último backup: ela continua refletindo o backup mais recente.
+          const { lastBackupAt, ...config } = backup.config;
+          await setDoc(configDocRef, config, { merge: true });
         }
 
         currentPage = 1;
-        showNotification('Backup restaurado com sucesso!', 'success');
+        showNotification(`Backup restaurado: ${backup.records.length} registros` + (stockEntries.length ? ` e ${stockEntries.length} itens de estoque.` : '.'), 'success');
       } catch (err) {
         console.error('Erro ao restaurar backup:', err);
-        showNotification('Falha ao restaurar backup: arquivo inválido ou erro de conexão.', 'error');
+        showNotification('Falha ao restaurar backup: ' + (err.message || 'erro de conexão.'), 'error');
       } finally {
         restoreInput.value = '';
       }
     };
     reader.readAsText(file);
   });
+}
+
+// Monta o backup completo: registros, estoque (lido direto do Firestore, não da tela)
+// e configurações. Formato versão 2; a restauração também aceita backups antigos (só registros).
+async function buildBackupObject() {
+  const stockSnap = await getDocs(stockCollection);
+  const stock = {};
+  stockSnap.forEach(d => { stock[d.id] = d.data(); });
+  return {
+    formatVersion: 2,
+    generatedAt: new Date().toISOString(),
+    generatedBy: currentUserEmail(),
+    records,
+    stock,
+    config: currentConfig
+  };
+}
+
+// Confere a estrutura do backup antes de qualquer gravação. Devolve a lista de problemas.
+function validateBackupObject(backup) {
+  const problems = [];
+  if (!backup || typeof backup !== 'object') return ['Arquivo vazio ou inválido.'];
+  if (!Array.isArray(backup.records)) return ['O arquivo não contém a lista de registros.'];
+  if (backup.records.length === 0) problems.push('O backup não tem nenhum registro.');
+  const required = ['id', 'paciente', 'medicamento', 'inicio', 'termino', 'status'];
+  const ids = new Set();
+  backup.records.forEach((r, i) => {
+    if (!r || typeof r !== 'object') { problems.push(`Registro ${i + 1} inválido.`); return; }
+    const missing = required.filter(f => r[f] === undefined || r[f] === null || r[f] === '');
+    if (missing.length) problems.push(`Registro ${i + 1} sem: ${missing.join(', ')}.`);
+    if (typeof r.id === 'string') {
+      if (r.id.includes('/')) problems.push(`Registro ${i + 1} com id inválido.`);
+      if (ids.has(r.id)) problems.push(`Id repetido: ${r.id}.`);
+      ids.add(r.id);
+    }
+  });
+  if (backup.stock !== undefined && (typeof backup.stock !== 'object' || Array.isArray(backup.stock))) {
+    problems.push('Seção de estoque com formato inválido.');
+  }
+  return problems;
 }
 
 // Calcula há quanto tempo foi o último backup (campo compartilhado no Firestore) e
@@ -3779,8 +3936,31 @@ function applyConfig(config) {
     document.title = `Sistema de Controle de Antibióticos - ${config.systemName}`;
   }
   if ('notifyExpiration' in config) document.getElementById('notifyExpiration').checked = !!config.notifyExpiration;
-  if ('notifyInteractions' in config) document.getElementById('notifyInteractions').checked = !!config.notifyInteractions;
-  if ('notifyProtocols' in config) document.getElementById('notifyProtocols').checked = !!config.notifyProtocols;
+  renderExpiringAlert();
+}
+
+// Aviso na aba Registros: tratamentos ATIVOS que terminam hoje ou amanhã, para o
+// farmacêutico revisar (renovar, suspender ou deixar finalizar). Respeita a opção
+// "Tratamentos próximos do vencimento" das Configurações.
+function renderExpiringAlert() {
+  const box = document.getElementById('expiringAlert');
+  if (!box) return;
+  if (currentConfig.notifyExpiration === false) { box.style.display = 'none'; return; }
+  const expiring = records
+    .filter(r => r.status === 'Ativo')
+    .map(r => ({ r, dias: calculateRemainingDays(r.termino) }))
+    .filter(x => x.dias === 0 || x.dias === 1)
+    .sort((a, b) => a.dias - b.dias || String(a.r.setor).localeCompare(String(b.r.setor)) || String(a.r.paciente).localeCompare(String(b.r.paciente)));
+  if (!expiring.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const hoje = expiring.filter(x => x.dias === 0).length;
+  const amanha = expiring.length - hoje;
+  const items = expiring.map(({ r, dias }) =>
+    `<li><span class="exp-when ${dias === 0 ? 'today' : ''}">${dias === 0 ? 'Hoje' : 'Amanhã'}</span> ` +
+    `<strong>${escapeHtml(r.paciente)}</strong> · ${escapeHtml(r.medicamento)} · ${escapeHtml(r.setor)}</li>`).join('');
+  box.innerHTML =
+    `<details><summary><i class="fas fa-clock"></i> <strong>${expiring.length} tratamento(s) terminando</strong>: ` +
+    `${hoje} hoje, ${amanha} amanhã. <span class="exp-hint">Clique para ver</span></summary><ul>${items}</ul></details>`;
+  box.style.display = 'block';
 }
 </script>
 </body>

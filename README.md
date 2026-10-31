@@ -43,4 +43,10 @@ Altere `public/index.html`, faça commit e push na `main`. O Pages publica em ce
 
 ## Backup
 
-Configurações → Backup gera um `.json` com os dados. Faça semanalmente e guarde fora do navegador.
+Configurações → Backup gera um `.json` (formato versão 2) com **registros, estoque e configurações**. Faça semanalmente e guarde fora do navegador.
+
+A restauração confere o arquivo inteiro antes de gravar, mostra um resumo, **baixa automaticamente um backup de segurança do estado atual** e só então substitui os registros. Backups antigos (sem estoque) continuam aceitos; nesse caso o estoque atual é mantido.
+
+## Auditoria
+
+Cada registro grava `createdBy`/`createdAt` (quem criou) e `updatedBy`/`updatedAt` (quem alterou por último). Registros anteriores a 31/10/2026 aparecem como "anterior à auditoria" na primeira edição. O estoque também grava quem alterou cada item.
