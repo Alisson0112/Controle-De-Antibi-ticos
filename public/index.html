@@ -1912,7 +1912,9 @@ function printTable() {
     <title>Controle de Antibióticos - Impressão</title>
     <style>
       :root { --primary:#2c3e50; --secondary:#3498db; --accent:#e74c3c; --success:#2ecc71; --warning:#f39c12; }
-      * { box-sizing: border-box; }
+      /* print-color-adjust: exact força o navegador a imprimir cores de fundo
+         (selos, cabeçalhos) mesmo com "Imprimir fundo" desmarcado. */
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
       .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 20px; }
       .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
@@ -2641,6 +2643,9 @@ function printStockTable(tbody) {
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const statusLabels = { normal: 'Disponível', atencao: 'Atenção', critico: 'Crítico', mcritico: 'M. Crítico' };
   const statusColors = { normal: '#2ecc71', atencao: '#f39c12', critico: '#a93226', mcritico: '#8e44ad' };
+  // Tons escuros para o texto da coluna Situação: continuam legíveis e coloridos
+  // mesmo se a impressora/navegador ignorar cores de fundo.
+  const statusTextColors = { normal: '#1e8449', atencao: '#b9770e', critico: '#a93226', mcritico: '#6c3483' };
 
   let mCritico = 0, critico = 0, atencao = 0, normal = 0;
 
@@ -2654,6 +2659,7 @@ function printStockTable(tbody) {
     const status = row.getAttribute('data-status');
     const label = statusLabels[status] || 'Disponível';
     const color = statusColors[status] || '#2ecc71';
+    const textColor = statusTextColors[status] || '#1e8449';
 
     if (status === 'mcritico') mCritico++;
     else if (status === 'critico') critico++;
@@ -2665,8 +2671,8 @@ function printStockTable(tbody) {
       <td>${escapeHtml(nome)}</td>
       <td style="text-align:center;">${escapeHtml(tratamento)}</td>
       <td style="text-align:center;">${escapeHtml(estoque)}</td>
-      <td style="text-align:center;"><span class="pill" style="background:${color};">${escapeHtml(disponivel)}</span></td>
-      <td style="text-align:center;">${escapeHtml(label)}</td>
+      <td style="text-align:center;"><span class="pill" style="background:${color};border-color:${color};">${escapeHtml(disponivel)}</span></td>
+      <td style="text-align:center;"><span class="situacao" style="color:${textColor};border-color:${color};"><span class="dot" style="background:${color};"></span>${escapeHtml(label)}</span></td>
     </tr>`;
   });
 
@@ -2674,7 +2680,9 @@ function printStockTable(tbody) {
     <title>Estoque de Antibióticos - Impressão</title>
     <style>
       :root { --primary:#2c3e50; --secondary:#3498db; }
-      * { box-sizing: border-box; }
+      /* print-color-adjust: exact força o navegador a imprimir cores de fundo
+         (selos, cabeçalhos) mesmo com "Imprimir fundo" desmarcado. */
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
       .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 20px; }
       .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
@@ -2692,7 +2700,9 @@ function printStockTable(tbody) {
       th, td { border: 1px solid #e2e2e2; padding: 8px 10px; text-align: left; vertical-align: top; }
       th { background-color: var(--primary); color: #fff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
       tbody tr:nth-child(even) { background: #f8f9fb; }
-      .pill { display:inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; min-width: 32px; }
+      .pill { display:inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; min-width: 32px; border: 1px solid transparent; }
+      .situacao { display:inline-flex; align-items:center; gap:5px; padding: 2px 9px; border: 1px solid; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .situacao .dot { width: 7px; height: 7px; border-radius: 50%; display:inline-block; }
       .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
@@ -3422,7 +3432,9 @@ function printReport() {
     <title>Relatório ${escapeHtml(reportWord)}</title>
     <style>
       :root { --primary:#2c3e50; --secondary:#3498db; --success:#2ecc71; --warning:#f39c12; }
-      * { box-sizing: border-box; }
+      /* print-color-adjust: exact força o navegador a imprimir cores de fundo
+         (selos, cabeçalhos) mesmo com "Imprimir fundo" desmarcado. */
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 0; padding: 30px 36px; }
       .report-header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 3px solid var(--primary); padding-bottom: 14px; margin-bottom: 16px; }
       .report-header h1 { margin: 0 0 4px 0; font-size: 22px; color: var(--primary); }
