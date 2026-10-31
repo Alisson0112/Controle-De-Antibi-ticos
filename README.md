@@ -20,7 +20,7 @@ Sistema web de controle de uso de antibióticos por paciente e por setor, com co
 - **Banco de dados e login:** Firebase, projeto `controle-de-antibiotico`. Coleções do Firestore: `records` (registros), `stock` (estoque) e `config/system` (configurações). Autenticação por e-mail e senha. Nenhum dado fica na hospedagem nem neste repositório.
 - **Hospedagem:** Cloudflare Pages ligado a este repositório. Cada push na branch `main` publica automaticamente.
 
-> A configuração web do Firebase no `index.html` é pública por design. Quem protege os dados são as **regras de segurança do Firestore**, que devem exigir usuário autenticado. **Nunca** faça commit de backups `.json`, porque eles contêm dados de pacientes.
+> A configuração web do Firebase no `index.html` é pública por design. Quem protege os dados são as **regras de segurança do Firestore**, que devem exigir usuário autenticado. Os domínios autorizados do Authentication **não** bloqueiam o login por e-mail e senha feito de outros sites. Como reforço, restrinja a chave de API do navegador por referenciador HTTP no Google Cloud Console (APIs e serviços → Credenciais). **Nunca** faça commit de backups `.json`, porque eles contêm dados de pacientes.
 
 ## Configuração do Cloudflare Pages (feita uma vez)
 
@@ -29,7 +29,7 @@ Sistema web de controle de uso de antibióticos por paciente e por setor, com co
 3. Nome do projeto: `controledeantibioticos` · Branch de produção: `main`.
 4. Predefinição de framework: **Nenhuma** · Comando de build: **(vazio)** · Diretório de saída do build: **`public`**.
 5. **Salvar e implantar.**
-6. Firebase → Authentication → Configurações → **Domínios autorizados** → adicionar `controledeantibioticos.pages.dev`.
+6. Firebase → Authentication → Configurações → **Domínios autorizados** → adicionar `controledeantibioticos.pages.dev`. Isso não é exigido para o login por e-mail e senha, mas passa a ser necessário se um dia o sistema usar login com Google ou links de redefinição de senha que voltam para o site.
 
 ## Como publicar uma nova versão
 
