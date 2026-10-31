@@ -41,6 +41,7 @@ Atualizado em 23/10/2026. Este arquivo resume tudo o que foi feito na conversa, 
 - Registros antigos com nomes fora da lista continuam aparecendo ao editar. A ferramenta **Configurações → Padronização de Medicamentos** troca os nomes antigos pelos da lista em lote (depois de revisão manual, em blocos de até 400).
 
 **Casamento de nomes com a aba Estoque**
+- **Desde 30/10/2026:** cada item da lista fixa tem um vínculo direto com o código da linha do Estoque (`MED_STOCK_CODE`). A comparação por nome abaixo só vale como reserva para registros antigos fora da lista. Ao incluir um medicamento novo na lista, inclua também o código dele em `MED_STOCK_CODE`.
 - `normalizeMedName` tira acentos, passa para maiúsculas e remove espaços e pontuação. A comparação é por "contém", nos dois sentidos.
 - Nomes sem correspondência, ou com mais de uma, ficam de fora da soma e aparecem no aviso amarelo "Não reconhecidos no Estoque".
 

@@ -2291,6 +2291,45 @@ function setupMedMigration() {
   });
 }
 
+// Vínculo fixo: cada item da lista padronizada (MEDICAMENTOS_LISTA) -> código (Cód.)
+// da linha do Estoque. É a fonte principal do cálculo de "Tratamento em Andamento".
+// A comparação por nome (normalizeMedName) fica só como reserva para nomes antigos,
+// fora da lista. Ao incluir um medicamento na lista, inclua também o código aqui.
+const MED_STOCK_CODE = {
+  'AMICACINA 250 MG/ML': '28',
+  'AMPICILINA + SULBACTAM 3 G': '775',
+  'ANFOTERICINA B 50 MG': '4875',
+  'AZITROMICINA 500 MG': '149',
+  'BENZILPENICILINA BENZATINA 1200000UI/ML AMPOLA INJETAVEL': '404',
+  'CEFALEXINA 500 MG': '153',            // Estoque: CEFALEXINA V.O
+  'CEFALOTINA 1 G': '35',
+  'CEFAZOLINA 1 G': '34',
+  'CEFEPIMA 1 G': '98',
+  'CEFTAZIDIMA 1 G': '319',              // Estoque: CEFTAZIDIMA P
+  'CEFTRIAXONA 1 G': '31',
+  'CEFUROXIMA 750 MG': '3001',
+  'CIPROFLOXACINO 200 MG/100 ML': '392',
+  'CIPROFLOXACINO 400 MG/200 ML': '103',
+  'CIPROFLOXACINO 500 MG': '152',
+  'CLINDAMICINA 150 MG/ML': '27',
+  'CLINDAMICINA 300 MG': '1063',
+  'FLUCONAZOL 150 MG': '414',
+  'FLUCONAZOL 2 MG/ML': '90',            // Estoque: FLUCONAZOL 200MG E.V
+  'GENTAMICINA 40 MG/ML': '47',
+  'GENTAMICINA 80 MG': '845',
+  'LEVOFLOXACINO 500 MG': '151',         // Estoque: LEVOFLOXACINO 500MG V.O (antes ambíguo)
+  'LEVOFLOXACINO 500 MG/100 ML': '87',
+  'MEROPENEM 1 G': '73',
+  'METRONIDAZOL 250 MG': '1135',
+  'METRONIDAZOL 5 MG/100 ML': '88',      // Estoque: METRONIDAZOL EV
+  'OXACILINA 500 MG': '521',
+  'PIPERACILINA 4 G + TAZOBACTAM 0,5 G': '394',
+  'POLIMIXINA B 500.000 UI/ML': '89',
+  'SULFAMETOXAZOL + TRIMETOPRIMA 400 MG + 80 MG': '150', // Estoque: SULFAMETOXAZOL 400MG
+  'TEICOPLANINA 400 MG': '385',
+  'VANCOMICINA 500 MG': '86'
+};
+
 // Remove acentos e normaliza maiúsculas/espaços para comparar nomes de antibióticos
 // digitados livremente no Registro com os nomes cadastrados na tabela de Estoque.
 function normalizeMedName(str) {
@@ -2323,6 +2362,13 @@ function recomputeStockTratamento() {
   const ambiguous = {};
 
   records.filter(r => r.status === 'Ativo').forEach(record => {
+    // 1) Vínculo fixo pela lista padronizada (determinístico, sem ambiguidade).
+    const mappedCod = MED_STOCK_CODE[(record.medicamento || '').trim()];
+    if (mappedCod && Object.prototype.hasOwnProperty.call(totals, mappedCod)) {
+      totals[mappedCod] += calculateRemainingQuantity(record);
+      return;
+    }
+    // 2) Reserva: comparação por nome, para registros antigos fora da lista.
     const normMed = normalizeMedName(record.medicamento);
     if (!normMed) return;
     const matches = stockRows.filter(s => s.norm && (normMed.includes(s.norm) || s.norm.includes(normMed)));
