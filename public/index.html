@@ -3933,9 +3933,8 @@ function renderReportsTab() {
   // Observações sobre o cálculo do valor (aparecem na tela e na impressão)
   const valueNotes = [];
   if (temCusto && cur.total > 0) {
-    if (cur.valor.fallback) {
-      valueNotes.push(`Consumos anteriores à primeira carga de custo (${formatDateBR(new Date(costHistory[0].at))}) foram valorizados com o custo dessa primeira carga.`);
-    }
+    // O custo médio dos antibióticos é estável: meses anteriores à primeira carga do PDF
+    // usam o custo dessa carga (getUnitCost) sem aviso, a pedido da farmácia.
     if (cur.valor.semCusto > 0) {
       valueNotes.push(`${cur.valor.semCusto} unidade(s) sem custo médio conhecido (medicamento fora da lista padronizada) não entraram no valor.`);
     }
@@ -4159,7 +4158,7 @@ function printReport() {
       <tbody>${medRowsHtml}</tbody>
     </table>
     ${d.valueNotes && d.valueNotes.length ? `<div class="value-note">${escapeHtml(d.valueNotes.join(' '))}</div>` : ''}
-    ${d.temCusto ? '<div class="value-note">Valores calculados pela quantidade consumida × custo médio do Soul MV vigente na data de cada consumo.</div>' : ''}
+    ${d.temCusto ? '<div class="value-note">Valores calculados pela quantidade consumida × custo médio do Soul MV.</div>' : ''}
 
     <div class="section-title">Consumo por Antibiótico em cada Setor</div>
     <table>
