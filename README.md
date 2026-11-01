@@ -47,6 +47,12 @@ Configurações → Backup gera um `.json` (formato versão 2) com **registros, 
 
 A restauração confere o arquivo inteiro antes de gravar, mostra um resumo, **baixa automaticamente um backup de segurança do estado atual** e só então substitui os registros. Backups antigos (sem estoque) continuam aceitos; nesse caso o estoque atual é mantido.
 
+## Valor do consumo (aba Relatórios)
+
+Ao carregar o PDF **Posição de Estoque** do Soul MV na aba Estoque, o sistema lê também o **Custo Médio** de cada item. O custo só é aceito quando *Estoque Atual × Custo Médio = Vl. Total* na mesma linha. Cada carga é guardada com data no documento `stock/_historicoCustos` (campo `entradas`).
+
+Nos Relatórios, o valor de cada consumo é *quantidade × custo médio vigente na data do consumo*, ou seja, o da carga mais recente até aquela data. Consumos anteriores à primeira carga usam o custo da primeira, e o relatório avisa quando isso acontece. Os valores aparecem só na aba Relatórios: no cartão, na tabela por antibiótico, na matriz por setor, na impressão e no Excel. A aba Estoque não mostra valores.
+
 ## Auditoria
 
 Cada registro grava `createdBy`/`createdAt` (quem criou) e `updatedBy`/`updatedAt` (quem alterou por último). Registros anteriores a 31/10/2026 aparecem como "anterior à auditoria" na primeira edição. O estoque também grava quem alterou cada item.

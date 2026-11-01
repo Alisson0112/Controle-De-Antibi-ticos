@@ -471,6 +471,9 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 
 /* Relatórios */
 .rep-cards { gap: 0; }
+.rep-money { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rep-matrix tfoot tr.rep-foot-value td { font-weight: 700; color: #1E8449; background: #F1F9F4; border-top: 1px solid var(--rule); white-space: nowrap; }
+.rep-value-note { font-size: 12.5px; color: var(--muted); margin: -8px 2px 14px; }
 .rep-cards .card { border-left: 1px solid var(--rule); }
 .rep-cards .card:first-child { border-left: none; }
 .rep-cards .card-value { font-size: 20px; line-height: 1.3; }
@@ -866,6 +869,14 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 </div>
 <div class="card">
 <div class="card-header">
+<div class="card-title">Valor do Consumo</div>
+<div class="card-icon green"><i class="fas fa-brazilian-real-sign"></i></div>
+</div>
+<div class="card-value" id="reportValue">—</div>
+<div class="card-description" id="reportValueDesc">Sem dados no período</div>
+</div>
+<div class="card">
+<div class="card-header">
 <div class="card-title">Pacientes</div>
 <div class="card-icon blue"><i class="fas fa-user-injured"></i></div>
 </div>
@@ -884,11 +895,12 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div class="data-table-container">
 <table class="data-table" id="reportTable">
 <thead>
-<tr><th>Antibiótico</th><th>Quantidade</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr>
+<tr><th>Antibiótico</th><th>Quantidade</th><th>Valor</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
+<p class="rep-value-note" id="reportValueNote" hidden></p>
 
 <h3 class="rep-section-title">Consumo por Antibiótico em cada Setor</h3>
 <div class="data-table-container">
@@ -1175,7 +1187,7 @@ import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, getDocs
+  getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, getDocs, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -2421,6 +2433,9 @@ function printTable() {
 // ele é sempre recalculado a partir dos registros ativos, nunca armazenado.
 const stockOriginalValues = {};
 let refreshStockFilter = null; // definida em setupStockTab()
+// Histórico de custo médio vindo do PDF do Soul MV: [{ at, by, custos: { cod: valor } }], em ordem de data.
+const COST_HISTORY_DOC_ID = '_historicoCustos';
+let costHistory = [];
 const stockDebounceTimers = {};
 
 // Classifica a quantidade disponível nas faixas definidas pela farmácia:
@@ -2855,6 +2870,14 @@ function applyStockSnapshot(snapshot) {
   const remote = {};
   snapshot.forEach(docSnap => { remote[docSnap.id] = docSnap.data(); });
 
+  const hist = remote[COST_HISTORY_DOC_ID] && Array.isArray(remote[COST_HISTORY_DOC_ID].entradas) ? remote[COST_HISTORY_DOC_ID].entradas : [];
+  const histKey = JSON.stringify(hist);
+  if (histKey !== applyStockSnapshot._lastHist) {
+    applyStockSnapshot._lastHist = histKey;
+    costHistory = hist.filter(e => e && e.at && e.custos).slice().sort((a, b) => a.at.localeCompare(b.at));
+    renderReportsTab();
+  }
+
   tbody.querySelectorAll('tr').forEach(row => {
     const cod = row.getAttribute('data-cod');
     const estoqueInput = row.querySelector('.stock-estoque');
@@ -2965,9 +2988,15 @@ function parseBrNumber(tok) {
   return parseFloat(tok.replace(/\./g, '').replace(',', '.'));
 }
 
+// Colunas numéricas de cada linha do relatório (depois do código do estoque 322/325):
+// Est. Mínimo, Est. Máximo, P. Pedido, Estoque Atual, Custo Médio, Vl. Total.
+// Versões antigas do relatório podem vir só com as 4 primeiras; nesse caso não há custo.
+// O custo só é aceito se Estoque Atual × Custo Médio = Vl. Total (tolerância de arredondamento),
+// para nunca confundir um número do nome do produto (ex.: "0,5 G") com o custo.
 function parseSoulMvStockPdf(rawText, knownCodes) {
   const tokens = rawText.split(/\s+/).filter(Boolean);
   const byLocation = {}; // codigo -> { '322': valor, '325': valor }
+  const costByCode = {};  // codigo -> [{ custo, qtd }]
   let currentCode = null;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -2980,14 +3009,21 @@ function parseSoulMvStockPdf(rawText, knownCodes) {
       const local = tok;
       const values = [];
       let j = i + 1;
-      while (j < tokens.length && values.length < 4) {
+      while (j < tokens.length && values.length < 6) {
         if (DECIMAL_BR.test(tokens[j])) values.push(parseBrNumber(tokens[j]));
         else if (/^\d+$/.test(tokens[j]) && knownCodes.has(tokens[j])) break;
         j++;
       }
-      if (values.length === 4) {
+      if (values.length >= 4) {
         byLocation[currentCode] = byLocation[currentCode] || {};
         byLocation[currentCode][local] = values[3]; // "Estoque Atual" é o 4º valor (Mín, Máx, P.Pedido, Atual)
+        if (values.length === 6) {
+          const [atual, custo, vlTotal] = [values[3], values[4], values[5]];
+          const tolerancia = Math.max(0.05, Math.abs(vlTotal) * 0.001);
+          if (custo > 0 && Math.abs(atual * custo - vlTotal) <= tolerancia) {
+            (costByCode[currentCode] = costByCode[currentCode] || []).push({ custo, qtd: atual });
+          }
+        }
         i = j - 1;
       }
     }
@@ -2998,7 +3034,16 @@ function parseSoulMvStockPdf(rawText, knownCodes) {
     const locs = byLocation[code];
     totals[code] = Math.round((locs['322'] || 0) + (locs['325'] || 0));
   });
-  return totals;
+  // Custo médio por produto: é o mesmo nos dois estoques; se vier diferente, usa a média
+  // ponderada pela quantidade (ou a média simples quando os dois estão zerados).
+  const costs = {};
+  Object.keys(costByCode).forEach(code => {
+    const list = costByCode[code];
+    const qtd = list.reduce((a, c) => a + c.qtd, 0);
+    const custo = qtd > 0 ? list.reduce((a, c) => a + c.custo * c.qtd, 0) / qtd : list.reduce((a, c) => a + c.custo, 0) / list.length;
+    costs[code] = Math.round(custo * 10000) / 10000;
+  });
+  return { totals, costs };
 }
 
 function setupStockTab() {
@@ -3063,7 +3108,8 @@ function setupStockTab() {
       }
       const rows = Array.from(tbody.querySelectorAll('tr'));
       const knownCodes = new Set(rows.map(r => r.getAttribute('data-cod')));
-      const totals = parseSoulMvStockPdf(text, knownCodes);
+      const { totals, costs } = parseSoulMvStockPdf(text, knownCodes);
+      const nCustos = Object.keys(costs).length;
 
       const foundCodes = Object.keys(totals);
       if (foundCodes.length === 0) {
@@ -3072,7 +3118,10 @@ function setupStockTab() {
       }
 
       const missing = rows.filter(r => !(r.getAttribute('data-cod') in totals)).map(r => r.children[1].textContent.trim());
-      const confirmMsg = `Encontrei ${foundCodes.length} de ${rows.length} antibióticos no PDF (soma dos estoques 322 + 325).\n\nIsso vai atualizar o campo "Estoque" desses itens (o "Tratamento em Andamento" não é alterado). Continuar?`;
+      const confirmMsg = `Encontrei ${foundCodes.length} de ${rows.length} antibióticos no PDF (soma dos estoques 322 + 325)` +
+        (nCustos ? ` e o custo médio de ${nCustos} deles.` : '. Este PDF não traz o custo médio.') +
+        `\n\nIsso vai atualizar o campo "Estoque" desses itens (o "Tratamento em Andamento" não é alterado)` +
+        (nCustos ? ' e registrar o custo médio de hoje para os valores da aba Relatórios.' : '.') + ' Continuar?';
       if (!confirm(confirmMsg)) return;
 
       const batch = writeBatch(db);
@@ -3084,15 +3133,23 @@ function setupStockTab() {
         recalcStockRow(row);
         batch.set(doc(stockCollection, cod), { estoque: totals[cod] }, { merge: true });
       });
+      // Histórico de custo médio (uma entrada por carga do PDF), usado só nos Relatórios para
+      // valorizar cada consumo pelo custo vigente na data. Fica num documento da própria coleção
+      // de estoque, que é lido junto com ele.
+      const nowIso = new Date().toISOString();
+      if (nCustos) {
+        batch.set(doc(stockCollection, COST_HISTORY_DOC_ID),
+          { entradas: arrayUnion({ at: nowIso, by: currentUserEmail(), custos: costs }) }, { merge: true });
+      }
       await batch.commit();
 
-      const nowIso = new Date().toISOString();
       setDoc(configDocRef, { stockReferenceAt: nowIso }, { merge: true }).catch(err => console.error('Erro ao registrar data de referência do estoque:', err));
       updateStockReferenceDate(nowIso);
 
+      const sufixoCusto = nCustos ? ` Custo médio registrado para ${nCustos}.` : '';
       const msg = missing.length === 0
-        ? `Estoque atualizado a partir do PDF: ${foundCodes.length} antibióticos.`
-        : `Estoque atualizado: ${foundCodes.length} antibióticos. Não encontrados no PDF: ${missing.join(', ')}.`;
+        ? `Estoque atualizado a partir do PDF: ${foundCodes.length} antibióticos.${sufixoCusto}`
+        : `Estoque atualizado: ${foundCodes.length} antibióticos.${sufixoCusto} Não encontrados no PDF: ${missing.join(', ')}.`;
       showNotification(msg, missing.length === 0 ? 'success' : 'error');
     } catch (err) {
       console.error('Erro ao importar PDF:', err);
@@ -3405,15 +3462,46 @@ function getReportRecords() {
 }
 
 // Soma o consumo dos registros dentro de [start, end], por antibiótico e por setor.
+/* ---------- Valor do consumo (custo médio do Soul MV) ---------- */
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+function formatBRL(v) { return BRL.format(v || 0); }
+
+// Custo médio de um medicamento numa data: usa a carga de PDF mais recente até aquela data.
+// Para datas anteriores à primeira carga, usa a primeira (fallback = true, avisado no relatório).
+function getUnitCost(medicamento, date) {
+  const cod = MED_STOCK_CODE[(medicamento || '').trim()];
+  if (!cod || !costHistory.length) return null;
+  const limite = addDays(startOfDay(date), 1).toISOString();
+  let vigente = null, primeira = null;
+  for (const e of costHistory) {
+    const c = e.custos[cod];
+    if (!(c > 0)) continue;
+    if (!primeira) primeira = c;
+    if (e.at < limite) vigente = c; else break;
+  }
+  if (vigente !== null) return { custo: vigente, fallback: false };
+  return primeira !== null ? { custo: primeira, fallback: true } : null;
+}
+
 function aggregateRange(recs, start, end, mode, today) {
   const byMed = {}, bySetor = {}, byMedSetor = {}, pacientes = new Set();
   let total = 0, registros = 0;
+  // valor: soma de quantidade × custo vigente; semCusto: unidades sem custo conhecido.
+  const valor = { total: 0, semCusto: 0, fallback: false, byMed: {}, bySetor: {} };
   recs.forEach(record => {
-    let qty = 0, hit = false;
+    let qty = 0, hit = false, val = 0;
     getConsumptionEvents(record, mode, today).forEach(ev => {
-      if (ev.date >= start && ev.date <= end) { qty += ev.qty; hit = true; }
+      if (ev.date >= start && ev.date <= end) {
+        qty += ev.qty; hit = true;
+        const uc = getUnitCost(record.medicamento, ev.date);
+        if (uc) { val += ev.qty * uc.custo; if (uc.fallback) valor.fallback = true; }
+        else valor.semCusto += ev.qty;
+      }
     });
     if (!hit) return;
+    valor.total += val;
+    valor.byMed[record.medicamento] = (valor.byMed[record.medicamento] || 0) + val;
+    valor.bySetor[record.setor || '—'] = (valor.bySetor[record.setor || '—'] || 0) + val;
     total += qty;
     registros++;
     pacientes.add(record.paciente);
@@ -3429,7 +3517,7 @@ function aggregateRange(recs, start, end, mode, today) {
     if (!byMedSetor[record.medicamento]) byMedSetor[record.medicamento] = {};
     byMedSetor[record.medicamento][setor] = (byMedSetor[record.medicamento][setor] || 0) + qty;
   });
-  return { byMed, bySetor, byMedSetor, pacientes, total, registros };
+  return { byMed, bySetor, byMedSetor, pacientes, total, registros, valor };
 }
 
 // Mantido para o "Comparativo entre Meses": agora também respeita os filtros e o critério escolhidos.
@@ -3456,7 +3544,7 @@ function buildMedRows(cur, prev, curCmp = cur) {
       variacao = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
     }
     const via = Object.entries(c.viaCount).sort((a, b) => b[1] - a[1])[0][0];
-    return { medicamento, quantidade: c.quantidade, pacientes: c.pacientes.size, via, variacao };
+    return { medicamento, quantidade: c.quantidade, valor: cur.valor.byMed[medicamento] || 0, pacientes: c.pacientes.size, via, variacao };
   }).sort((a, b) => b.quantidade - a.quantidade);
 }
 
@@ -3487,6 +3575,8 @@ function buildSectorMatrix(cur) {
     totals: setores.map(st => info[st].quantidade),
     pcts: setores.map(st => info[st].pct),
     pacientes: setores.map(st => info[st].pacientes),
+    valores: setores.map(st => cur.valor.bySetor[st] || 0),
+    valorTotal: cur.valor.total,
     totalGeral: cur.total,
     pacientesTotal: cur.pacientes.size
   };
@@ -3829,6 +3919,30 @@ function renderReportsTab() {
   setText('reportTotal', cur.total > 0 ? String(cur.total) : '—');
   setText('reportTotalDesc', totalDesc);
   kpis.push({ title: 'Total Consumido', value: cur.total > 0 ? String(cur.total) : '—', desc: totalDesc });
+
+  // KPI: valor do consumo (quantidade × custo médio do Soul MV vigente na data de cada consumo)
+  const temCusto = costHistory.length > 0;
+  let valueTxt = '—', valueDesc;
+  if (!temCusto) valueDesc = 'Carregue o PDF do Soul MV na aba Estoque';
+  else if (cur.total === 0) valueDesc = 'Sem dados no período';
+  else { valueTxt = formatBRL(cur.valor.total); valueDesc = 'pelo custo médio do Soul MV'; }
+  setText('reportValue', valueTxt);
+  setText('reportValueDesc', valueDesc);
+  kpis.push({ title: 'Valor do Consumo', value: valueTxt, desc: valueDesc });
+
+  // Observações sobre o cálculo do valor (aparecem na tela e na impressão)
+  const valueNotes = [];
+  if (temCusto && cur.total > 0) {
+    if (cur.valor.fallback) {
+      valueNotes.push(`Consumos anteriores à primeira carga de custo (${formatDateBR(new Date(costHistory[0].at))}) foram valorizados com o custo dessa primeira carga.`);
+    }
+    if (cur.valor.semCusto > 0) {
+      valueNotes.push(`${cur.valor.semCusto} unidade(s) sem custo médio conhecido (medicamento fora da lista padronizada) não entraram no valor.`);
+    }
+  }
+  const noteEl = document.getElementById('reportValueNote');
+  noteEl.textContent = valueNotes.join(' ');
+  noteEl.hidden = valueNotes.length === 0;
   const patientsDesc = cur.pacientes.size > 0 ? 'pacientes distintos' : 'Sem dados no período';
   setText('reportPatients', cur.pacientes.size > 0 ? String(cur.pacientes.size) : '—');
   setText('reportPatientsDesc', patientsDesc);
@@ -3838,7 +3952,7 @@ function renderReportsTab() {
   const inText = { day: 'neste dia', month: 'neste mês', year: 'neste ano' }[type];
   const tbody = document.querySelector('#reportTable tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:30px;">Nenhum consumo encontrado ${inText} para os filtros selecionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888; padding:30px;">Nenhum consumo encontrado ${inText} para os filtros selecionados.</td></tr>`;
   } else {
     const maxQty = rows[0].quantidade;
     tbody.innerHTML = rows.map(r => {
@@ -3848,6 +3962,7 @@ function renderReportsTab() {
       return `<tr>
         <td>${escapeHtml(r.medicamento)}</td>
         <td><div class="rep-qty">${r.quantidade} unidades</div><div class="rep-bar"><span style="width:${pctOf(r.quantidade, maxQty)}%"></span></div></td>
+        <td class="rep-money">${temCusto && r.valor > 0 ? formatBRL(r.valor) : '—'}</td>
         <td>${r.pacientes}</td>
         <td>${escapeHtml(r.via)}</td>
         <td style="color:${color}">${escapeHtml(variationText(r.variacao))}</td>
@@ -3879,7 +3994,8 @@ function renderReportsTab() {
     sFoot.innerHTML =
       `<tr><td>Total</td>${matrix.totals.map(v => `<td>${v}</td>`).join('')}<td>${matrix.totalGeral}</td></tr>` +
       `<tr class="rep-foot-sub"><td>% do total</td>${matrix.pcts.map(v => `<td>${v}%</td>`).join('')}<td>100%</td></tr>` +
-      `<tr class="rep-foot-sub"><td>Pacientes</td>${matrix.pacientes.map(v => `<td>${v}</td>`).join('')}<td>${matrix.pacientesTotal}</td></tr>`;
+      `<tr class="rep-foot-sub"><td>Pacientes</td>${matrix.pacientes.map(v => `<td>${v}</td>`).join('')}<td>${matrix.pacientesTotal}</td></tr>` +
+      (temCusto ? `<tr class="rep-foot-value"><td>Valor</td>${matrix.valores.map(v => `<td>${v > 0 ? formatBRL(v) : '—'}</td>`).join('')}<td>${formatBRL(matrix.valorTotal)}</td></tr>` : '');
   }
 
   renderReportTimeline(recs, today);
@@ -3893,7 +4009,7 @@ function renderReportsTab() {
 
   const a = reportState.anchor;
   const fileKey = type === 'day' ? toDateInputValue(a) : (type === 'month' ? `${a.getFullYear()}-${pad2(a.getMonth() + 1)}` : String(a.getFullYear()));
-  lastReportData = { type, reportName: `Relatorio ${txt.report}`, periodLabel, setorTxt, medTxt, modeTxt, kpis, rows, sectorRows, matrix, total: cur.total, fileKey };
+  lastReportData = { type, reportName: `Relatorio ${txt.report}`, periodLabel, setorTxt, medTxt, modeTxt, kpis, rows, sectorRows, matrix, total: cur.total, fileKey, temCusto, valorTotal: cur.valor.total, valueNotes };
 }
 
 function syncPeriodControls() {
@@ -3939,7 +4055,7 @@ function printReport() {
     </div>`).join('');
 
   const medRowsHtml = d.rows.length === 0
-    ? '<tr><td colspan="5" style="text-align:center;color:#999;">Nenhum consumo encontrado para os filtros selecionados.</td></tr>'
+    ? '<tr><td colspan="6" style="text-align:center;color:#999;">Nenhum consumo encontrado para os filtros selecionados.</td></tr>'
     : d.rows.map(r => {
         const v = variationText(r.variacao);
         const isPositive = v.startsWith('+') || v === 'Novo';
@@ -3950,6 +4066,7 @@ function printReport() {
         return `<tr>
           <td><strong>${escapeHtml(r.medicamento)}</strong></td>
           <td>${r.quantidade} unidades</td>
+          <td class="money">${d.temCusto && r.valor > 0 ? formatBRL(r.valor) : '—'}</td>
           <td>${r.pacientes}</td>
           <td>${escapeHtml(r.via)}</td>
           <td><span class="var-pill" style="background:${badgeBg};color:${badgeColor};">${arrow} ${escapeHtml(v)}</span></td>
@@ -3971,7 +4088,8 @@ function printReport() {
   const sectorFootHtml = m.rows.length === 0 ? '' :
     `<tr class="tf"><td>Total</td>${m.totals.map(v => `<td class="c">${v}</td>`).join('')}<td class="c">${m.totalGeral}</td></tr>` +
     `<tr class="tf2"><td>% do total</td>${m.pcts.map(v => `<td class="c">${v}%</td>`).join('')}<td class="c">100%</td></tr>` +
-    `<tr class="tf2"><td>Pacientes</td>${m.pacientes.map(v => `<td class="c">${v}</td>`).join('')}<td class="c">${m.pacientesTotal}</td></tr>`;
+    `<tr class="tf2"><td>Pacientes</td>${m.pacientes.map(v => `<td class="c">${v}</td>`).join('')}<td class="c">${m.pacientesTotal}</td></tr>` +
+    (d.temCusto ? `<tr class="tfv"><td>Valor</td>${m.valores.map(v => `<td class="c">${v > 0 ? formatBRL(v) : '—'}</td>`).join('')}<td class="c">${formatBRL(m.valorTotal)}</td></tr>` : '');
 
   printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
     <title>Relatório ${escapeHtml(reportWord)}</title>
@@ -4006,6 +4124,10 @@ function printReport() {
       .tt { font-weight: 700; background: #f4f6f8; }
       .tf td { font-weight: 700; background: #eef1f4; border-top: 2px solid #cfd6dd; }
       .tf2 td { color: #555; background: #fafbfc; }
+      .tfv td { font-weight: 700; color: #1e8449; background: #f1f9f4; white-space: nowrap; }
+      .money { white-space: nowrap; font-weight: 600; }
+      .value-note { font-size: 11px; color: #777; margin-top: 6px; }
+      .kpi:nth-child(5) { border-top-color: var(--success); }
       .var-pill { display:inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
       .report-footer { margin-top: 24px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
@@ -4033,9 +4155,11 @@ function printReport() {
 
     <div class="section-title">Consumo por Antibiótico</div>
     <table>
-      <thead><tr><th>Antibiótico</th><th>Quantidade</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr></thead>
+      <thead><tr><th>Antibiótico</th><th>Quantidade</th><th>Valor</th><th>Pacientes</th><th>Via Mais Frequente</th><th>Variação</th></tr></thead>
       <tbody>${medRowsHtml}</tbody>
     </table>
+    ${d.valueNotes && d.valueNotes.length ? `<div class="value-note">${escapeHtml(d.valueNotes.join(' '))}</div>` : ''}
+    ${d.temCusto ? '<div class="value-note">Valores calculados pela quantidade consumida × custo médio do Soul MV vigente na data de cada consumo.</div>' : ''}
 
     <div class="section-title">Consumo por Antibiótico em cada Setor</div>
     <table>
@@ -4068,8 +4192,13 @@ function exportReport() {
   lines.push([csvCell('Antibioticos'), csvCell(d.medTxt)].join(','));
   lines.push([csvCell('Contagem'), csvCell(d.modeTxt)].join(','));
   lines.push('');
-  lines.push('Antibiotico,Quantidade,Pacientes,Via Mais Frequente,Variacao');
-  d.rows.forEach(r => lines.push([csvCell(r.medicamento), r.quantidade, r.pacientes, csvCell(r.via), csvCell(variationText(r.variacao))].join(',')));
+  // Valores em formato brasileiro (vírgula decimal), entre aspas, para o Excel em português.
+  const money = v => csvCell(d.temCusto ? (Math.round(v * 100) / 100).toFixed(2).replace('.', ',') : '');
+  if (d.temCusto) lines.push([csvCell('Valor do consumo (R$)'), money(d.valorTotal)].join(','));
+  if (d.valueNotes && d.valueNotes.length) lines.push([csvCell('Observacao'), csvCell(d.valueNotes.join(' '))].join(','));
+  lines.push('');
+  lines.push('Antibiotico,Quantidade,Valor (R$),Pacientes,Via Mais Frequente,Variacao');
+  d.rows.forEach(r => lines.push([csvCell(r.medicamento), r.quantidade, money(r.valor), r.pacientes, csvCell(r.via), csvCell(variationText(r.variacao))].join(',')));
   lines.push('');
   const m = d.matrix;
   lines.push(['Antibiotico por Setor', ...m.setores.map(csvCell), csvCell('Total')].join(','));
@@ -4077,6 +4206,7 @@ function exportReport() {
   lines.push([csvCell('Total'), ...m.totals, m.totalGeral].join(','));
   lines.push([csvCell('% do total'), ...m.pcts, 100].join(','));
   lines.push([csvCell('Pacientes'), ...m.pacientes, m.pacientesTotal].join(','));
+  if (d.temCusto) lines.push([csvCell('Valor (R$)'), ...m.valores.map(money), money(m.valorTotal)].join(','));
   // BOM no início para o Excel reconhecer os acentos (UTF-8)
   downloadFile('\uFEFF' + lines.join('\r\n') + '\r\n', `relatorio_antibioticos_${d.type}_${d.fileKey}.csv`, 'text/csv;charset=utf-8;');
   showNotification('Relatório exportado com sucesso!', 'success');
