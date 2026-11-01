@@ -17,27 +17,28 @@
 @font-face { font-family: 'Atkinson Hyperlegible Next'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/atkinson-hyperlegible-next-latin-700-normal.woff2') format('woff2'); }
 
 :root {
-  /* Base */
-  --ink: #1B2B33;          /* texto e cabeçalho */
-  --ink-2: #22363F;
-  --muted: #5B6B71;        /* textos de apoio */
-  --paper: #F3F5F4;        /* fundo da aplicação */
+  /* Paleta original do sistema (mantida a pedido da farmácia) */
+  --ink: #2C3E50;          /* cabeçalho e títulos */
+  --ink-2: #34495E;
+  --muted: #6B7785;        /* textos de apoio */
+  --paper: #F5F7F9;        /* fundo da aplicação */
   --surface: #FFFFFF;
-  --rule: #DDE4E2;         /* bordas */
-  --rule-soft: #ECF0EF;
-  --field: #C9D3D0;        /* borda de campos */
-  /* Ação (verde-farmácia) */
-  --teal: #0B6E69;
-  --teal-hover: #085955;
-  --teal-tint: #E3F1EF;
-  --teal-light: #6FC9BF;
-  --focus-ring: rgba(11, 110, 105, 0.22);
-  /* Situações do estoque (mesmas cores que a farmácia já usa, refinadas) */
-  --ok: #2F7D4F;      --ok-tint: #E4F2EA;
-  --warn: #C46A12;    --warn-tint: #FCEEDF;
-  --crit: #B3261E;    --crit-tint: #FBE7E5;
-  --mcrit: #6B3FA0;   --mcrit-tint: #EFE8F7;
-  --done: #4A5B62;    --done-tint: #E8EDEF;
+  --rule: #E1E6EB;         /* bordas */
+  --rule-soft: #EEF1F4;
+  --field: #D3D9DF;        /* borda de campos */
+  /* Ação principal (azul original). O nome "teal" ficou do tema anterior. */
+  --teal: #3498DB;
+  --teal-hover: #2980B9;
+  --teal-tint: #EAF4FC;
+  --teal-light: #5DADE2;
+  --focus-ring: rgba(52, 152, 219, 0.22);
+  /* Situações (cores originais) */
+  --ok: #27AE60;      --ok-tint: #E8F5E9;
+  --warn: #F39C12;    --warn-tint: #FFF3E0;
+  --crit: #E74C3C;    --crit-tint: #FFEBEE;    /* erros e ações destrutivas */
+  --stock-crit: #A93226;                       /* "Crítico" do estoque */
+  --mcrit: #8E44AD;   --mcrit-tint: #F3E5F5;
+  --done: #1565C0;    --done-tint: #E3F2FD;    /* Finalizado */
   /* Nomes antigos, mantidos porque o restante do CSS ainda os usa */
   --primary: var(--ink); --secondary: var(--teal); --accent: var(--crit); --light: var(--rule-soft);
   --dark: var(--ink-2); --success: var(--ok); --warning: var(--warn); --text: var(--ink);
@@ -63,7 +64,7 @@ nav ul::-webkit-scrollbar { display: none; }
 nav li a { display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 14px; color: rgba(255,255,255,0.72); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; border-bottom: 3px solid transparent; border-top: 3px solid transparent; transition: color 0.15s, border-color 0.15s; }
 nav li a i { font-size: 13px; opacity: 0.8; }
 nav li a:hover { color: #fff; }
-nav li a.active { color: #fff; border-bottom-color: var(--teal-light); }
+nav li a.active { color: #fff; background: var(--teal); }
 nav li a:focus-visible { outline-offset: -4px; }
 .user-info { display: flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 13px; color: rgba(255,255,255,0.78); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(111, 201, 191, 0.18); color: var(--teal-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
@@ -89,10 +90,10 @@ nav li a:focus-visible { outline-offset: -4px; }
 .card-value { font-size: 30px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--ink); }
 .card-description { font-size: 12.5px; color: var(--muted); }
 /* Na aba Registros cada indicador ganha a cor do status que representa */
-#registros .dashboard-cards .card::before { content: ''; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--rule); }
+#registros .dashboard-cards .card::before { content: ''; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--teal); }
 #registros .dashboard-cards .card:nth-child(2)::before { background: var(--ok); }
 #registros .dashboard-cards .card:nth-child(3)::before { background: var(--warn); }
-#registros .dashboard-cards .card:nth-child(4)::before { background: var(--done); }
+#registros .dashboard-cards .card:nth-child(4)::before { background: var(--crit); }
 
 /* Filtros */
 .filters { background: var(--surface); padding: 14px 16px; border: 1px solid var(--rule); border-radius: var(--radius-lg); margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 14px; }
@@ -149,8 +150,8 @@ input:focus, select:focus { outline: none; border-color: var(--teal); box-shadow
 
 /* Status do tratamento */
 .status { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-block; white-space: nowrap; }
-.status-active { background: var(--ok-tint); color: #1F6B40; }
-.status-inactive { background: var(--warn-tint); color: #8F4A06; }   /* Suspenso */
+.status-active { background: var(--ok-tint); color: #2E7D32; }
+.status-inactive { background: var(--crit-tint); color: #C62828; }   /* Suspenso */
 .status-finalizado { background: var(--done-tint); color: var(--done); }
 .action-buttons { display: flex; gap: 6px; }
 .action-btn { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; transition: background 0.15s, border-color 0.15s; }
@@ -203,7 +204,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 /* Avisos */
 .notification { position: fixed; bottom: 22px; right: 22px; max-width: min(460px, calc(100vw - 44px)); padding: 13px 18px; border-radius: var(--radius); color: #fff; font-weight: 600; font-size: 14px; z-index: 1100; opacity: 0; transform: translateY(12px); transition: opacity 0.2s, transform 0.2s; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 30px rgba(17, 32, 38, 0.25); pointer-events: none; }
 .notification.show { opacity: 1; transform: translateY(0); }
-.notification.success { background: #1F6B40; }
+.notification.success { background: #27AE60; }
 .notification.error { background: var(--crit); }
 .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); background: var(--surface); border: 1px dashed var(--rule); border-radius: var(--radius-lg); margin-bottom: 16px; }
 .empty-state i { font-size: 40px; margin-bottom: 12px; color: #B9C5C1; }
@@ -233,7 +234,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 }
 .days-warning { color: var(--crit); font-weight: bold; }
 .days-normal { color: var(--ok); }
-.stock-normal { text-align: center; font-weight: 600; color: #1F6B40; }
+.stock-normal { text-align: center; font-weight: 600; color: #2E7D32; }
 .stock-atencao { text-align: center; font-weight: 700; color: #fff; background: var(--warn); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
 .stock-critico { text-align: center; font-weight: 700; color: #fff; background: var(--crit); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
 .stock-mcritico { text-align: center; font-weight: 700; color: #fff; background: var(--mcrit); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
@@ -242,7 +243,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .stock-legend i { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
 .protocol-note { background: var(--warn-tint); border-left: 4px solid var(--warning); padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: var(--muted); }
 .protocol-note strong { color: var(--accent); }
-.bic-yes { color: #1F6B40; font-weight: 700; }
+.bic-yes { color: #2E7D32; font-weight: 700; }
 .bic-no { color: #8A989D; }
 .stock-input { width: 80px; padding: 6px 8px; border: 1px solid var(--field); border-radius: 6px; font-size: 13px; text-align: center; }
 .stock-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px var(--focus-ring); }
@@ -257,7 +258,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .expiring-alert .exp-hint { color: var(--secondary); font-size: 12px; margin-left: 6px; }
 .expiring-alert ul { margin: 10px 0 2px; padding-left: 0; list-style: none; display: grid; gap: 6px; }
 .expiring-alert li { font-size: 12.5px; }
-.expiring-alert .exp-when { display: inline-block; min-width: 62px; text-align: center; padding: 1px 8px; border-radius: 10px; background: var(--warn-tint); color: #8F4A06; font-weight: 700; font-size: 11px; margin-right: 6px; }
+.expiring-alert .exp-when { display: inline-block; min-width: 62px; text-align: center; padding: 1px 8px; border-radius: 10px; background: var(--warn-tint); color: #E65100; font-weight: 700; font-size: 11px; margin-right: 6px; }
 .expiring-alert .exp-when.today { background: var(--crit-tint); color: var(--crit); }
 
 /* Aba Configurações */
@@ -280,8 +281,8 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .backup-status-label { font-size: 13px; color: var(--muted); }
 .backup-status-value { font-weight: 700; font-size: 14px; }
 .backup-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.backup-badge.ok { background: var(--ok-tint); color: #1F6B40; }
-.backup-badge.warn { background: var(--warn-tint); color: #8F4A06; }
+.backup-badge.ok { background: var(--ok-tint); color: #2E7D32; }
+.backup-badge.warn { background: var(--warn-tint); color: #E65100; }
 .backup-badge.never { background: var(--crit-tint); color: var(--crit); }
 .config-tips { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .config-tips li { display: flex; gap: 10px; font-size: 13px; color: var(--muted); align-items: flex-start; }
@@ -384,9 +385,9 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
    ========================================================================== */
 /* Estoque: o "Disponível" vira uma cápsula na cor da situação */
 .stock-normal, .stock-atencao, .stock-critico, .stock-mcritico { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; height: 26px; padding: 0 12px; border-radius: 999px; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
-.stock-normal { background: var(--ok-tint); color: #1F6B40; }
+.stock-normal { background: var(--ok-tint); color: #2E7D32; }
 .stock-atencao { background: var(--warn); color: #fff; }
-.stock-critico { background: var(--crit); color: #fff; }
+.stock-critico { background: var(--stock-crit); color: #fff; }
 .stock-mcritico { background: var(--mcrit); color: #fff; }
 .stock-legend { gap: 8px; margin-bottom: 16px; }
 .stock-legend span { gap: 7px; padding: 4px 11px 4px 8px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); font-size: 12.5px; font-weight: 600; }
@@ -402,12 +403,12 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 
 /* Avisos em faixa (protocolo, estoque, vencimentos, backup) */
 .protocol-note, .stock-unmatched-warning, .backup-warning { background: var(--warn-tint); border: 1px solid #F1D3B3; border-left: 4px solid var(--warn); border-radius: var(--radius); color: #4A3A2A; }
-.protocol-note strong, .stock-unmatched-warning strong { color: #8F4A06; }
+.protocol-note strong, .stock-unmatched-warning strong { color: #E65100; }
 .expiring-alert { background: var(--teal-tint); border: 1px solid #C5E3DF; border-left: 4px solid var(--teal); border-radius: var(--radius); color: var(--ink); padding: 11px 14px; }
 .expiring-alert .exp-hint { color: var(--teal); }
-.expiring-alert .exp-when { background: var(--warn-tint); color: #8F4A06; }
+.expiring-alert .exp-when { background: var(--warn-tint); color: #E65100; }
 .expiring-alert .exp-when.today { background: var(--crit-tint); color: var(--crit); }
-.bic-yes { color: #1F6B40; }
+.bic-yes { color: #2E7D32; }
 
 /* Configurações */
 .config-card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: 20px 22px; }
@@ -448,7 +449,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .col-filter-panel .cf-actions button { height: 30px; font-weight: 600; }
 
 /* Tela de entrada */
-#loginScreen { background: var(--ink); }
+#loginScreen { background: linear-gradient(135deg, var(--ink), var(--ink-2)); }
 .login-box { border-radius: 14px; padding: 34px 32px 30px; max-width: 380px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
 .login-box .login-icon { width: auto; height: 46px; background: none; margin: 0 auto 14px; }
 .login-box .login-icon i { display: none; }
@@ -621,7 +622,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <p>Situação do estoque (CAF + Farmácia) e do que já está reservado para tratamentos em andamento. Referência: <strong id="stockReferenceDate">nunca atualizado via PDF</strong>.</p>
 <div class="stock-legend">
 <span><i style="background:var(--mcrit)"></i> M. Crítico</span>
-<span><i style="background:var(--crit)"></i> Crítico</span>
+<span><i style="background:var(--stock-crit)"></i> Crítico</span>
 <span><i style="background:var(--warn)"></i> Atenção</span>
 <span><i style="background:var(--ok)"></i> Disponível</span>
 </div>
