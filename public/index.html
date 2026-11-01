@@ -3440,15 +3440,20 @@ function aggregateRecordsByMonth(year, month) {
   return aggregateRange(getReportRecords(), start, end, reportState.countMode, startOfDay(new Date())).byMed;
 }
 
-function buildMedRows(cur, prev) {
+// curCmp (opcional): recorte do período atual usado só na comparação (até hoje, quando
+// o período está em andamento). A quantidade exibida continua sendo a do período inteiro.
+function buildMedRows(cur, prev, curCmp = cur) {
   return Object.keys(cur.byMed).map(medicamento => {
     const c = cur.byMed[medicamento];
+    const cmpQtd = curCmp.byMed[medicamento] ? curCmp.byMed[medicamento].quantidade : 0;
     const prevQtd = prev.byMed[medicamento] ? prev.byMed[medicamento].quantidade : 0;
     let variacao;
     if (prevQtd === 0) {
-      variacao = c.quantidade > 0 ? 'novo' : '0%';
+      variacao = cmpQtd > 0 ? 'novo' : '—';
+    } else if (cmpQtd === 0) {
+      variacao = '—';
     } else {
-      const pct = ((c.quantidade - prevQtd) / prevQtd) * 100;
+      const pct = ((cmpQtd - prevQtd) / prevQtd) * 100;
       variacao = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
     }
     const via = Object.entries(c.viaCount).sort((a, b) => b[1] - a[1])[0][0];
@@ -3767,9 +3772,20 @@ function renderReportsTab() {
   const recs = getReportRecords();
   const range = getPeriodRange(type, reportState.anchor);
   const prevRange = getPeriodRange(type, shiftAnchor(type, reportState.anchor, -1));
+  // Período em andamento (mês/ano atual): compara com o MESMO trecho do período anterior
+  // (ex.: 1–10/nov x 1–10/out). Comparar o mês parcial com o mês anterior inteiro mostrava
+  // uma "queda" falsa na Tendência e na coluna Variação.
+  const inProgress = type !== 'day' && today >= range.start && today <= range.end;
+  let prevEnd = prevRange.end;
+  if (inProgress) {
+    const elapsedDays = Math.round((today - range.start) / DAY_MS);
+    const sameSpan = addDays(prevRange.start, elapsedDays);
+    if (sameSpan < prevRange.end) prevEnd = sameSpan;
+  }
   const cur = aggregateRange(recs, range.start, range.end, reportState.countMode, today);
-  const prev = aggregateRange(recs, prevRange.start, prevRange.end, reportState.countMode, today);
-  const rows = buildMedRows(cur, prev);
+  const prev = aggregateRange(recs, prevRange.start, prevEnd, reportState.countMode, today);
+  const curCmp = inProgress ? aggregateRange(recs, range.start, today, reportState.countMode, today) : cur;
+  const rows = buildMedRows(cur, prev, curCmp);
   const sectorRows = buildSectorRows(cur);
   const periodLabel = formatPeriodLabel(type, reportState.anchor);
   const kpis = [];
@@ -3792,16 +3808,18 @@ function renderReportsTab() {
 
   // KPI: tendência vs. período anterior
   let trendValue, trendDesc;
-  if (prev.total > 0) {
-    const pct = ((cur.total - prev.total) / prev.total) * 100;
+  const prevLabel = inProgress ? `mesmo período do ${txt.prev} (até ${formatDateBR(prevEnd)})` : txt.prev;
+  if (cur.total === 0 || curCmp.total === 0) {
+    // Sem consumo no período: não há tendência a mostrar (antes aparecia -100%).
+    trendValue = 'Sem dados';
+    trendDesc = inProgress ? `Ainda sem consumo registrado ${txt.of}` : 'Sem consumo no período';
+  } else if (prev.total > 0) {
+    const pct = ((curCmp.total - prev.total) / prev.total) * 100;
     trendValue = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
-    trendDesc = `Comparado ao ${txt.prev}`;
-  } else if (cur.total > 0) {
-    trendValue = 'Novo';
-    trendDesc = `Sem consumo no ${txt.prev}`;
+    trendDesc = `Comparado ao ${prevLabel}`;
   } else {
-    trendValue = '—';
-    trendDesc = 'Sem dados no período';
+    trendValue = 'Novo';
+    trendDesc = `Sem consumo no ${prevLabel}`;
   }
   setText('reportTrend', trendValue);
   setText('reportTrendDesc', trendDesc);
@@ -3827,7 +3845,7 @@ function renderReportsTab() {
     tbody.innerHTML = rows.map(r => {
       const isNovo = r.variacao === 'novo';
       const isPositive = r.variacao.startsWith('+');
-      const color = isNovo ? '#1565c0' : (isPositive ? 'green' : (r.variacao === '0%' ? '#777' : 'red'));
+      const color = isNovo ? '#1565c0' : (isPositive ? 'green' : ((r.variacao === '0%' || r.variacao === '—') ? '#777' : 'red'));
       return `<tr>
         <td>${escapeHtml(r.medicamento)}</td>
         <td><div class="rep-qty">${r.quantidade} unidades</div><div class="rep-bar"><span style="width:${pctOf(r.quantidade, maxQty)}%"></span></div></td>
@@ -3926,10 +3944,10 @@ function printReport() {
     : d.rows.map(r => {
         const v = variationText(r.variacao);
         const isPositive = v.startsWith('+') || v === 'Novo';
-        const neutral = v === '0%';
+        const neutral = v === '0%' || v === '—';
         const badgeBg = neutral ? '#eceff1' : (isPositive ? '#e8f5e9' : '#ffebee');
         const badgeColor = neutral ? '#607d8b' : (isPositive ? '#2e7d32' : '#c62828');
-        const arrow = v === 'Novo' ? '●' : (neutral ? '–' : (isPositive ? '▲' : '▼'));
+        const arrow = v === 'Novo' ? '●' : (neutral ? '' : (isPositive ? '▲' : '▼'));
         return `<tr>
           <td><strong>${escapeHtml(r.medicamento)}</strong></td>
           <td>${r.quantidade} unidades</td>
