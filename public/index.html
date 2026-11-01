@@ -48,6 +48,8 @@
 html { -webkit-text-size-adjust: 100%; }
 body { font-family: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif; background: var(--paper); color: var(--ink); font-size: 14px; line-height: 1.45; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 input, select, textarea, button { font: inherit; color: inherit; }
+/* Garante que o atributo hidden esconda mesmo elementos com display definido no CSS */
+[hidden] { display: none !important; }
 :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .container { min-height: 100vh; display: flex; flex-direction: column; }
 
@@ -401,6 +403,51 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .stock-updated { animation: stockPulse 0.6s ease; }
 @keyframes stockPulse { 0% { background: var(--warn-tint); } 100% { background: transparent; } }
 
+/* Painel de filtros (Registros e Estoque) */
+.filter-panel { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: 14px 16px 12px; margin-bottom: 14px; display: grid; gap: 10px; }
+.fp-top { display: flex; align-items: center; gap: 12px; }
+.fp-search { position: relative; flex: 1; min-width: 0; }
+.fp-search > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+.fp-search input { width: 100%; height: 42px; padding: 0 40px 0 40px; font-size: 15px; background: #FAFBFC; }
+.fp-search input:focus { background: var(--surface); }
+.fp-search input::-webkit-search-cancel-button { display: none; }
+.fp-clear-search { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: none; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.fp-clear-search:hover { background: var(--rule-soft); color: var(--ink); }
+.fp-top .btn { height: 42px; }
+.fp-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.fp-label { width: 64px; flex-shrink: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { --chip-color: var(--teal); height: 30px; padding: 0 12px; border: 1px solid var(--field); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.chip:hover { background: var(--rule-soft); border-color: #B9C2CB; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--chip-color); flex-shrink: 0; }
+.chip .count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; font-size: 12px; }
+.chip[aria-pressed="true"] { background: var(--chip-color); border-color: var(--chip-color); color: #fff; }
+.chip[aria-pressed="true"] .dot { background: #fff; }
+.chip[aria-pressed="true"] .count { color: rgba(255, 255, 255, 0.85); }
+.fp-range { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.fp-range label { display: inline-flex; align-items: center; gap: 6px; }
+.fp-range input { height: 30px; font-size: 13px; padding: 0 8px; }
+.fp-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding-top: 10px; border-top: 1px solid var(--rule-soft); }
+.fp-result { font-size: 14px; color: var(--ink); white-space: nowrap; }
+.fp-result strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.fp-active { font-size: 13px; color: var(--muted); min-width: 0; }
+.fp-help i { margin-right: 4px; }
+.fp-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-link { height: 38px; padding: 0 8px; border: none; background: none; color: var(--teal-hover); font-weight: 600; font-size: 13.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; }
+.btn-link:hover { background: var(--teal-tint); }
+/* Cartões de indicadores funcionam como atalho de filtro */
+#registros .card-filter { cursor: pointer; transition: background 0.15s; }
+#registros .card-filter:hover { background: #FAFBFC; }
+#registros .card-filter.is-selected { background: var(--teal-tint); }
+@media (max-width: 768px) {
+  .fp-top { flex-wrap: wrap; }
+  .fp-search { flex: 1 1 100%; }
+  .fp-top .btn { width: 100%; }
+  .fp-label { width: 100%; }
+  .fp-actions { margin-left: 0; width: 100%; }
+  .fp-actions .btn { flex: 1; }
+}
+
 /* Avisos em faixa (protocolo, estoque, vencimentos, backup) */
 .protocol-note, .stock-unmatched-warning, .backup-warning { background: var(--warn-tint); border: 1px solid #F1D3B3; border-left: 4px solid var(--warn); border-radius: var(--radius); color: #4A3A2A; }
 .protocol-note strong, .stock-unmatched-warning strong { color: #E65100; }
@@ -514,7 +561,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <!-- Conteúdo da aba Registros -->
 <div id="registros" class="tab-content active">
 <div class="dashboard-cards">
-<div class="card">
+<div class="card card-filter" data-filter-status="" role="button" tabindex="0" title="Mostrar todos os registros">
 <div class="card-header">
 <div class="card-title">Total de Registros</div>
 <div class="card-icon blue"><i class="fas fa-list"></i></div>
@@ -522,7 +569,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div class="card-value" id="totalRecords">0</div>
 <div class="card-description">Registros no sistema</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Ativo" role="button" tabindex="0" title="Mostrar tratamentos ativos">
 <div class="card-header">
 <div class="card-title">Tratamentos Ativos</div>
 <div class="card-icon green"><i class="fas fa-check-circle"></i></div>
@@ -530,7 +577,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div class="card-value" id="activeTreatments">0</div>
 <div class="card-description">Pacientes em andamento</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Suspenso" role="button" tabindex="0" title="Mostrar tratamentos suspensos">
 <div class="card-header">
 <div class="card-title">Tratamentos Suspensos</div>
 <div class="card-icon orange"><i class="fas fa-exclamation-circle"></i></div>
@@ -538,7 +585,7 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div class="card-value" id="reviewNeeded">0</div>
 <div class="card-description">Necessitam atenção</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Finalizado" role="button" tabindex="0" title="Mostrar finalizados">
 <div class="card-header">
 <div class="card-title">Finalizados</div>
 <div class="card-icon red"><i class="fas fa-flag"></i></div>
@@ -550,37 +597,27 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 
 <div class="expiring-alert" id="expiringAlert" style="display:none;"></div>
 
-<div class="filters">
-<div class="filter-group">
-<label for="search">Pesquisar</label>
-<input type="text" id="search" placeholder="Digite para filtrar...">
+<div class="filter-panel" id="recordFilterPanel">
+<div class="fp-top">
+<div class="fp-search">
+<i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+<input type="search" id="search" placeholder="Buscar paciente, medicamento, setor, dosagem..." autocomplete="off" aria-label="Buscar registros">
+<button type="button" class="fp-clear-search" id="searchClear" aria-label="Limpar busca" hidden><i class="fas fa-xmark"></i></button>
 </div>
-<div class="filter-group">
-<label for="status">Status</label>
-<select id="status">
-<option value="">Todos</option>
-<option value="Ativo">Ativo</option>
-<option value="Finalizado">Finalizado</option>
-<option value="Suspenso">Suspenso</option>
-</select>
+<button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo registro</button>
 </div>
-<div class="filter-group">
-<label for="date">Data de Início</label>
-<input type="date" id="date">
-</div>
-<div class="filter-group">
-<label for="patient">Paciente</label>
-<input type="text" id="patient" placeholder="Filtrar por paciente">
-</div>
-</div>
-
-<div class="actions">
-<div>
-<button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo Registro</button>
-</div>
-<div>
+<div class="fp-row"><span class="fp-label" id="lblStatus">Status</span><div class="chip-group" id="statusChips" role="group" aria-labelledby="lblStatus"></div></div>
+<div class="fp-row"><span class="fp-label" id="lblSetor">Setor</span><div class="chip-group" id="setorChips" role="group" aria-labelledby="lblSetor"></div></div>
+<div class="fp-row"><span class="fp-label" id="lblPeriodo">Início</span><div class="chip-group" id="periodChips" role="group" aria-labelledby="lblPeriodo"></div>
+<div class="fp-range" id="periodRange" hidden><label>de <input type="date" id="dateFrom"></label><label>até <input type="date" id="dateTo"></label></div></div>
+<div class="fp-summary">
+<span class="fp-result" id="filterResultText" aria-live="polite"></span>
+<span class="fp-active" id="filterActiveText"></span>
+<div class="fp-actions">
+<button type="button" class="btn-link" id="clearFilters" hidden><i class="fas fa-filter-circle-xmark"></i> Limpar filtros</button>
 <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download"></i> Exportar</button>
 <button class="btn btn-secondary" id="printBtn"><i class="fas fa-print"></i> Imprimir</button>
+</div>
 </div>
 </div>
 
@@ -620,35 +657,25 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div id="estoque" class="tab-content">
 <h2>Estoque de Antibióticos</h2>
 <p>Situação do estoque (CAF + Farmácia) e do que já está reservado para tratamentos em andamento. Referência: <strong id="stockReferenceDate">nunca atualizado via PDF</strong>.</p>
-<div class="stock-legend">
-<span><i style="background:var(--mcrit)"></i> M. Crítico</span>
-<span><i style="background:var(--stock-crit)"></i> Crítico</span>
-<span><i style="background:var(--warn)"></i> Atenção</span>
-<span><i style="background:var(--ok)"></i> Disponível</span>
+<div class="filter-panel" id="stockFilterPanel">
+<div class="fp-top">
+<div class="fp-search">
+<i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+<input type="search" id="estoque-search" placeholder="Buscar antibiótico pelo nome ou código..." autocomplete="off" aria-label="Buscar antibiótico">
+<button type="button" class="fp-clear-search" id="estoqueSearchClear" aria-label="Limpar busca" hidden><i class="fas fa-xmark"></i></button>
 </div>
-<div class="filters">
-<div class="filter-group">
-<label for="estoque-search">Pesquisar Antibiótico</label>
-<input type="text" id="estoque-search" placeholder="Digite o nome do antibiótico...">
-</div>
-<div class="filter-group">
-<label for="estoque-status">Situação</label>
-<select id="estoque-status">
-<option value="">Todas</option>
-<option value="mcritico">M. Crítico</option>
-<option value="critico">Crítico</option>
-<option value="atencao">Atenção</option>
-<option value="normal">Disponível</option>
-</select>
-</div>
-</div>
-<div class="actions">
-<div><p style="color:#888; font-size:13px;"><i class="fas fa-info-circle"></i> "Tratamento em Andamento" é calculado automaticamente a partir dos registros ativos (quantidade que ainda falta usar até o término, diminuindo dia a dia). Edite apenas "Estoque" — o "Disponível" é recalculado automaticamente.</p></div>
-<div>
 <button class="btn btn-primary" id="importPdfBtn"><i class="fas fa-file-pdf"></i> Carregar PDF do Soul MV</button>
 <input type="file" id="importPdfInput" accept="application/pdf" style="display:none;">
+</div>
+<div class="fp-row"><span class="fp-label" id="lblSituacao">Situação</span><div class="chip-group" id="stockStatusChips" role="group" aria-labelledby="lblSituacao"></div></div>
+<div class="fp-summary">
+<span class="fp-result" id="stockResultText" aria-live="polite"></span>
+<span class="fp-active fp-help"><i class="fas fa-info-circle"></i> "Tratamento em Andamento" é calculado a partir dos registros ativos (o que ainda falta usar até o término). Edite apenas "Estoque".</span>
+<div class="fp-actions">
+<button type="button" class="btn-link" id="clearStockFilters" hidden><i class="fas fa-filter-circle-xmark"></i> Limpar filtros</button>
 <button class="btn btn-secondary" id="printStockBtn"><i class="fas fa-print"></i> Imprimir</button>
 <button class="btn btn-danger" id="resetStockBtn"><i class="fas fa-undo"></i> Restaurar valores originais</button>
+</div>
 </div>
 </div>
 <div class="data-table-container">
@@ -1393,20 +1420,70 @@ function updateDashboard() {
 /* ==========================================================================
    TABELA PRINCIPAL: FILTRO + PAGINAÇÃO + RENDERIZAÇÃO
    ========================================================================== */
-function getFilteredRecords() {
-  const searchText = document.getElementById('search').value.toLowerCase();
-  const statusFilter = document.getElementById('status').value;
-  const patientFilter = document.getElementById('patient').value.toLowerCase();
-  const dateFilter = document.getElementById('date').value; // formato YYYY-MM-DD
+/* ---------- Painel de filtros da aba Registros ---------- */
+// Estado único dos filtros (a tela é só um reflexo dele; ver renderRecordFilterUI).
+const recordFilters = { search: '', status: '', setores: new Set(), period: '', from: '', to: '' };
+const STATUS_CHIPS = [
+  { value: '', label: 'Todos', color: 'var(--teal)' },
+  { value: 'Ativo', label: 'Ativos', color: 'var(--ok)' },
+  { value: 'Suspenso', label: 'Suspensos', color: 'var(--crit)' },
+  { value: 'Finalizado', label: 'Finalizados', color: 'var(--done)' }
+];
+const PERIOD_CHIPS = [
+  { value: '', label: 'Qualquer data' },
+  { value: 'hoje', label: 'Hoje' },
+  { value: '7d', label: 'Últimos 7 dias' },
+  { value: 'mes', label: 'Este mês' },
+  { value: 'mespassado', label: 'Mês passado' },
+  { value: 'custom', label: 'Escolher datas' }
+];
+// Campos considerados na busca livre (os de auditoria e o id ficam de fora).
+const SEARCH_FIELDS = ['dataRegistro', 'setor', 'paciente', 'medicamento', 'via', 'dosagem', 'tratamento', 'posologia', 'inicio', 'termino', 'status'];
 
-  let result = records.filter(r => {
-    const rowText = Object.values(r).join(' ').toLowerCase();
-    const matchesSearch = !searchText || rowText.includes(searchText);
-    const matchesStatus = !statusFilter || r.status === statusFilter;
-    const matchesPatient = !patientFilter || r.paciente.toLowerCase().includes(patientFilter);
-    const matchesDate = !dateFilter || r.inicio === formatDateForDisplay(dateFilter);
-    return matchesSearch && matchesStatus && matchesPatient && matchesDate;
-  });
+// Minúsculas e sem acento: "joao" encontra "JOÃO".
+function normalizeSearch(value) {
+  return String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+// Intervalo [de, até] (datas locais, inclusive) do filtro de período, ou null se não houver.
+function getPeriodBounds() {
+  const hoje = startOfDay(new Date());
+  switch (recordFilters.period) {
+    case 'hoje': return { from: hoje, to: hoje };
+    case '7d': return { from: addDays(hoje, -6), to: hoje };
+    case 'mes': return { from: new Date(hoje.getFullYear(), hoje.getMonth(), 1), to: new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0) };
+    case 'mespassado': return { from: new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1), to: new Date(hoje.getFullYear(), hoje.getMonth(), 0) };
+    case 'custom': {
+      const parse = v => { if (!v) return null; const [y, m, d] = v.split('-').map(Number); return new Date(y, m - 1, d); };
+      const from = parse(recordFilters.from), to = parse(recordFilters.to);
+      return (from || to) ? { from, to } : null;
+    }
+    default: return null;
+  }
+}
+
+// skipStatus: usado para contar quantos registros cada botão de status mostraria.
+function recordMatchesFilters(r, skipStatus, bounds, term) {
+  if (term && !normalizeSearch(SEARCH_FIELDS.map(f => r[f]).join(' ')).includes(term)) return false;
+  if (!skipStatus && recordFilters.status && r.status !== recordFilters.status) return false;
+  if (recordFilters.setores.size && !recordFilters.setores.has(r.setor)) return false;
+  if (bounds) {
+    const inicio = parseDateBR(r.inicio);
+    if (!inicio) return false;
+    if (bounds.from && inicio < bounds.from) return false;
+    if (bounds.to && inicio > bounds.to) return false;
+  }
+  return true;
+}
+
+function hasRecordFilters() {
+  return !!(recordFilters.search || recordFilters.status || recordFilters.setores.size || getPeriodBounds() || Object.keys(columnFilters).length);
+}
+
+function getFilteredRecords() {
+  const bounds = getPeriodBounds();
+  const term = normalizeSearch(recordFilters.search);
+  let result = records.filter(r => recordMatchesFilters(r, false, bounds, term));
 
   Object.keys(columnFilters).forEach(col => {
     const allowed = columnFilters[col];
@@ -1601,6 +1678,7 @@ function renderTable() {
   const mainTable = document.getElementById('mainTable');
 
   const filtered = getFilteredRecords();
+  renderRecordFilterUI(filtered.length);
 
   if (filtered.length === 0) {
     tableBody.innerHTML = '';
@@ -1828,10 +1906,99 @@ function setupEventListeners() {
 }
 
 function setupFilterListeners() {
-  document.getElementById('search').addEventListener('input', filterTable);
-  document.getElementById('status').addEventListener('change', filterTable);
-  document.getElementById('date').addEventListener('change', filterTable);
-  document.getElementById('patient').addEventListener('input', filterTable);
+  const search = document.getElementById('search');
+  const searchClear = document.getElementById('searchClear');
+  search.addEventListener('input', () => { recordFilters.search = search.value; filterTable(); });
+  searchClear.addEventListener('click', () => { search.value = ''; recordFilters.search = ''; filterTable(); search.focus(); });
+
+  // Delegação: os botões são recriados a cada renderização.
+  document.getElementById('statusChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    recordFilters.status = chip.dataset.value; filterTable();
+  });
+  document.getElementById('setorChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    const v = chip.dataset.value;
+    if (v === '') recordFilters.setores.clear();
+    else if (recordFilters.setores.has(v)) recordFilters.setores.delete(v);
+    else recordFilters.setores.add(v);
+    filterTable();
+  });
+  document.getElementById('periodChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    recordFilters.period = chip.dataset.value; filterTable();
+    if (recordFilters.period === 'custom') document.getElementById('dateFrom').focus();
+  });
+  ['dateFrom', 'dateTo'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+    recordFilters[id === 'dateFrom' ? 'from' : 'to'] = e.target.value; filterTable();
+  }));
+
+  document.getElementById('clearFilters').addEventListener('click', clearRecordFilters);
+
+  // Os cartões de indicadores também filtram por status.
+  document.querySelectorAll('#registros .card-filter').forEach(card => {
+    const apply = () => { recordFilters.status = card.dataset.filterStatus; filterTable(); };
+    card.addEventListener('click', apply);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apply(); } });
+  });
+}
+
+function clearRecordFilters() {
+  recordFilters.search = ''; recordFilters.status = ''; recordFilters.setores.clear();
+  recordFilters.period = ''; recordFilters.from = ''; recordFilters.to = '';
+  document.getElementById('search').value = '';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  // Também limpa os filtros e a ordenação das colunas da tabela.
+  columnFilters = {}; columnSort = null;
+  document.querySelectorAll('.col-filter-btn.active').forEach(b => b.classList.remove('active'));
+  filterTable();
+}
+
+// Redesenha os botões e o resumo a partir de recordFilters. Chamado a cada renderTable().
+function renderRecordFilterUI(resultCount) {
+  const bounds = getPeriodBounds();
+  const term = normalizeSearch(recordFilters.search);
+  const base = records.filter(r => recordMatchesFilters(r, true, bounds, term));
+  const chip = (value, label, pressed, extra = '') =>
+    `<button type="button" class="chip" data-value="${escapeHtml(value)}" aria-pressed="${pressed}" ${extra}>${label}</button>`;
+
+  document.getElementById('statusChips').innerHTML = STATUS_CHIPS.map(c => {
+    const n = c.value ? base.filter(r => r.status === c.value).length : base.length;
+    const dot = c.value ? '<span class="dot"></span>' : '';
+    return chip(c.value, `${dot}${c.label} <span class="count">${n}</span>`, recordFilters.status === c.value, `style="--chip-color:${c.color}"`);
+  }).join('');
+
+  const setores = sortedUnique([...SETORES_PADRAO, ...records.map(r => r.setor).filter(Boolean)]);
+  document.getElementById('setorChips').innerHTML =
+    chip('', 'Todos', recordFilters.setores.size === 0) +
+    setores.map(st => chip(st, escapeHtml(st), recordFilters.setores.has(st))).join('');
+
+  document.getElementById('periodChips').innerHTML =
+    PERIOD_CHIPS.map(c => chip(c.value, c.label, recordFilters.period === c.value)).join('');
+  document.getElementById('periodRange').hidden = recordFilters.period !== 'custom';
+  document.getElementById('searchClear').hidden = !recordFilters.search;
+
+  // Resumo: quantos registros e quais filtros estão ligados.
+  const active = [];
+  if (recordFilters.search) active.push(`busca "${escapeHtml(recordFilters.search)}"`);
+  if (recordFilters.status) active.push(STATUS_CHIPS.find(c => c.value === recordFilters.status).label);
+  if (recordFilters.setores.size) active.push([...recordFilters.setores].map(escapeHtml).join(', '));
+  if (bounds) {
+    const fmt = d => d ? formatDateBR(d) : '…';
+    active.push(recordFilters.period === 'custom'
+      ? `início de ${fmt(bounds.from)} até ${fmt(bounds.to)}`
+      : PERIOD_CHIPS.find(c => c.value === recordFilters.period).label.toLowerCase());
+  }
+  const nCol = Object.keys(columnFilters).length;
+  if (nCol) active.push(`${nCol} filtro(s) de coluna`);
+  document.getElementById('filterResultText').innerHTML =
+    `<strong>${resultCount}</strong> ${resultCount === 1 ? 'registro' : 'registros'}` + (active.length ? '' : ' no total');
+  document.getElementById('filterActiveText').innerHTML = active.length ? 'Filtrando por ' + active.join(' · ') : '';
+  document.getElementById('clearFilters').hidden = !hasRecordFilters();
+
+  document.querySelectorAll('#registros .card-filter').forEach(card =>
+    card.classList.toggle('is-selected', card.dataset.filterStatus === recordFilters.status && hasRecordFilters()));
 }
 
 function openAddModal() {
@@ -2140,7 +2307,7 @@ function printTable() {
   const ativos = filtered.filter(r => r.status === 'Ativo').length;
   const finalizados = filtered.filter(r => r.status === 'Finalizado').length;
   const suspensos = filtered.filter(r => r.status === 'Suspenso').length;
-  const filtrosAtivos = Object.keys(columnFilters).length > 0 || document.getElementById('search').value || document.getElementById('status').value || document.getElementById('date').value || document.getElementById('patient').value;
+  const filtrosAtivos = hasRecordFilters();
 
   let rows = '';
   filtered.forEach(record => {
@@ -2254,6 +2421,7 @@ function printTable() {
 // documento de estoque é removido do Firestore. "Tratamento" não entra aqui —
 // ele é sempre recalculado a partir dos registros ativos, nunca armazenado.
 const stockOriginalValues = {};
+let refreshStockFilter = null; // definida em setupStockTab()
 const stockDebounceTimers = {};
 
 // Classifica a quantidade disponível nas faixas definidas pela farmácia:
@@ -2654,6 +2822,7 @@ function recomputeStockTratamento() {
   });
 
   updateStockUnmatchedWarning(unmatched, ambiguous);
+  if (refreshStockFilter) refreshStockFilter();
 }
 
 function updateStockUnmatchedWarning(unmatched, ambiguous) {
@@ -2703,6 +2872,8 @@ function applyStockSnapshot(snapshot) {
     }
     recalcStockRow(row);
   });
+  // Se alguém está digitando um estoque, só atualiza as contagens (a linha não some).
+  if (refreshStockFilter) refreshStockFilter({ countsOnly: !!(document.activeElement && document.activeElement.classList.contains('stock-estoque')) });
 }
 
 // Grava o Estoque no Firestore com debounce (evita uma escrita a cada tecla digitada).
@@ -2833,7 +3004,6 @@ function parseSoulMvStockPdf(rawText, knownCodes) {
 
 function setupStockTab() {
   const searchInput = document.getElementById('estoque-search');
-  const statusSelect = document.getElementById('estoque-status');
   const tbody = document.getElementById('stockTableBody');
   const emptyState = document.getElementById('stockEmptyState');
 
@@ -2849,6 +3019,7 @@ function setupStockTab() {
       const row = e.target.closest('tr');
       const cod = row.getAttribute('data-cod');
       recalcStockRow(row);
+      if (refreshStockFilter) refreshStockFilter({ countsOnly: true });
       saveStockRow(cod, row.querySelector('.stock-estoque').value);
     }
   });
@@ -2934,24 +3105,57 @@ function setupStockTab() {
     }
   });
 
-  function filterStock() {
-    const term = searchInput.value.toLowerCase();
-    const status = statusSelect.value;
+  // Filtro: busca (nome ou código, sem acento) + botões de situação com contagem.
+  const stockFilter = { search: '', status: '' };
+  const STOCK_CHIPS = [
+    { value: '', label: 'Todas', color: 'var(--teal)' },
+    { value: 'mcritico', label: 'M. Crítico', color: 'var(--mcrit)' },
+    { value: 'critico', label: 'Crítico', color: 'var(--stock-crit)' },
+    { value: 'atencao', label: 'Atenção', color: 'var(--warn)' },
+    { value: 'normal', label: 'Disponível', color: 'var(--ok)' }
+  ];
+  const chipsBox = document.getElementById('stockStatusChips');
+  const clearBtn = document.getElementById('estoqueSearchClear');
+  const clearFiltersBtn = document.getElementById('clearStockFilters');
+
+  // countsOnly: atualiza contagens e resumo sem esconder/mostrar linhas (usado enquanto o
+  // usuário digita um estoque, para a linha editada não sumir no meio da digitação).
+  function filterStock(options = {}) {
+    const term = normalizeSearch(stockFilter.search);
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const counts = { '': 0 };
     let visibleCount = 0;
-    tbody.querySelectorAll('tr').forEach(row => {
-      const name = row.children[1].textContent.toLowerCase();
+    rows.forEach(row => {
+      const text = normalizeSearch(row.children[0].textContent + ' ' + row.children[1].textContent);
       const rowStatus = row.getAttribute('data-status');
-      const matchesTerm = !term || name.includes(term);
-      const matchesStatus = !status || status === rowStatus;
-      const visible = matchesTerm && matchesStatus;
-      row.style.display = visible ? '' : 'none';
+      const matchesTerm = !term || text.includes(term);
+      if (matchesTerm) { counts[''] += 1; counts[rowStatus] = (counts[rowStatus] || 0) + 1; }
+      const visible = options.countsOnly ? row.style.display !== 'none'
+        : matchesTerm && (!stockFilter.status || stockFilter.status === rowStatus);
+      if (!options.countsOnly) row.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
     emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
-  }
 
-  searchInput.addEventListener('input', filterStock);
-  statusSelect.addEventListener('change', filterStock);
+    chipsBox.innerHTML = STOCK_CHIPS.map(c =>
+      `<button type="button" class="chip" data-value="${c.value}" aria-pressed="${stockFilter.status === c.value}" style="--chip-color:${c.color}">` +
+      `${c.value ? '<span class="dot"></span>' : ''}${c.label} <span class="count">${counts[c.value] || 0}</span></button>`).join('');
+    clearBtn.hidden = !stockFilter.search;
+    clearFiltersBtn.hidden = !stockFilter.search && !stockFilter.status;
+    document.getElementById('stockResultText').innerHTML =
+      `<strong>${visibleCount}</strong> de ${rows.length} antibióticos`;
+  }
+  // As situações mudam quando o estoque ou os tratamentos mudam: recalcula botões e contagens.
+  refreshStockFilter = filterStock;
+
+  searchInput.addEventListener('input', () => { stockFilter.search = searchInput.value; filterStock(); });
+  clearBtn.addEventListener('click', () => { searchInput.value = ''; stockFilter.search = ''; filterStock(); searchInput.focus(); });
+  chipsBox.addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    stockFilter.status = chip.dataset.value; filterStock();
+  });
+  clearFiltersBtn.addEventListener('click', () => { searchInput.value = ''; stockFilter.search = ''; stockFilter.status = ''; filterStock(); });
+  filterStock();
 }
 
 
