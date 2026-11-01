@@ -324,8 +324,6 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .col-filter-panel .cf-actions button { padding: 5px 12px; border-radius: 5px; border: none; font-size: 12px; cursor: pointer; }
 .col-filter-panel .cf-actions .cf-apply { background: var(--secondary); color: white; }
 .col-filter-panel .cf-actions .cf-cancel { background: var(--rule-soft); color: var(--muted); }
-.print-orientation { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); margin-right: 4px; }
-.print-orientation select { padding: 5px 6px; border-radius: 5px; border: 1px solid var(--field); font-size: 12.5px; }
 /* ---------- Relatórios: filtros avançados, seleção múltipla e gráficos ---------- */
 .rep-filters { align-items: end; }
 .rep-filters .filter-group > select, .rep-period-nav input { width: 100%; }
@@ -440,7 +438,6 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 .ms.ms-active .ms-btn { border-color: var(--teal); background: var(--teal-tint); }
 .ms-panel .ms-opt input[type="checkbox"], .col-filter-panel .cf-option input { accent-color: var(--teal); }
 .rep-matrix .rep-cell-max { color: var(--teal-hover); background: var(--teal-tint); }
-.print-orientation select { height: 38px; padding: 0 8px; border-radius: 6px; font-size: 13px; }
 
 /* Filtro por coluna (cabeçalho agora é claro) */
 .col-filter-btn { color: var(--muted); opacity: 0.6; }
@@ -581,8 +578,6 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo Registro</button>
 </div>
 <div>
-<span class="print-orientation"><label for="printOrientationRegistros">Impressão</label>
-<select id="printOrientationRegistros"><option value="landscape">Paisagem</option><option value="portrait">Retrato</option><option value="auto">Escolher ao imprimir</option></select></span>
 <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download"></i> Exportar</button>
 <button class="btn btn-secondary" id="printBtn"><i class="fas fa-print"></i> Imprimir</button>
 </div>
@@ -651,8 +646,6 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 <div>
 <button class="btn btn-primary" id="importPdfBtn"><i class="fas fa-file-pdf"></i> Carregar PDF do Soul MV</button>
 <input type="file" id="importPdfInput" accept="application/pdf" style="display:none;">
-<span class="print-orientation"><label for="printOrientationEstoque">Impressão</label>
-<select id="printOrientationEstoque"><option value="portrait">Retrato</option><option value="landscape">Paisagem</option><option value="auto">Escolher ao imprimir</option></select></span>
 <button class="btn btn-secondary" id="printStockBtn"><i class="fas fa-print"></i> Imprimir</button>
 <button class="btn btn-danger" id="resetStockBtn"><i class="fas fa-undo"></i> Restaurar valores originais</button>
 </div>
@@ -855,8 +848,6 @@ footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: 
 </div>
 <div class="actions">
 <div>
-<span class="print-orientation"><label for="printOrientationRelatorios">Impressão</label>
-<select id="printOrientationRelatorios"><option value="auto" selected>Escolher ao imprimir</option><option value="portrait">Retrato</option><option value="landscape">Paisagem</option></select></span>
 <button class="btn btn-secondary" id="reportMonthlyBtn"><i class="fas fa-download"></i> <span id="reportPrintLabel">Relatório Mensal</span></button>
 <button class="btn btn-secondary" id="reportExportBtn"><i class="fas fa-file-excel"></i> Exportar para Excel</button>
 </div>
@@ -2106,12 +2097,11 @@ function exportToCSV() {
   showNotification(`${filtered.length} registro(s) exportado(s) com sucesso!`, 'success');
 }
 
-// Regra @page da impressão. Com 'auto' NÃO fixamos tamanho/orientação: assim o Chrome mostra a opção
-// "Layout" (Retrato/Paisagem) na própria janela de impressão. Fixando size, ele esconde essa opção.
-function buildPageRule(orientation) {
-  return orientation === 'auto'
-    ? '@page { margin: 10mm; }'
-    : `@page { size: A4 ${orientation}; margin: 10mm; }`;
+// Regra @page da impressão. Não fixamos tamanho nem orientação: assim o Chrome mostra
+// "Layout" (Retrato/Paisagem) na própria janela de impressão e o usuário escolhe ali.
+// (Fixar "size" esconde essa opção, por isso não existe mais seletor de orientação na tela.)
+function buildPageRule() {
+  return '@page { margin: 10mm; }';
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -2143,7 +2133,6 @@ function printTable() {
     return;
   }
 
-  const orientation = document.getElementById('printOrientationRegistros').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const filtered = getFilteredRecords();
   const total = filtered.length;
@@ -2213,7 +2202,7 @@ function printTable() {
       .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
         table { page-break-inside: auto; }
         tr { page-break-inside: avoid; }
         thead { display: table-header-group; }
@@ -2975,7 +2964,6 @@ function printStockTable(tbody) {
     return;
   }
 
-  const orientation = document.getElementById('printOrientationEstoque').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const statusLabels = { normal: 'Disponível', atencao: 'Atenção', critico: 'Crítico', mcritico: 'M. Crítico' };
   const statusColors = { normal: '#2ecc71', atencao: '#f39c12', critico: '#a93226', mcritico: '#8e44ad' };
@@ -3042,7 +3030,7 @@ function printStockTable(tbody) {
       .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
         table { page-break-inside: auto; }
         tr { page-break-inside: avoid; }
         thead { display: table-header-group; }
@@ -3719,7 +3707,6 @@ function printReport() {
     showNotification('Habilite pop-ups para gerar o relatório.', 'error');
     return;
   }
-  const orientation = document.getElementById('printOrientationRelatorios').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const reportWord = PERIOD_TEXT[d.type].report;
 
@@ -3801,7 +3788,7 @@ function printReport() {
       .report-footer { margin-top: 24px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
       }
     </style></head><body>
     <div class="report-header">
