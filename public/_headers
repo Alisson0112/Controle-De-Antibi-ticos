@@ -11,3 +11,7 @@
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
+
+# Fontes não mudam: cache de 1 ano
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

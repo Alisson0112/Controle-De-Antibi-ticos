@@ -6,170 +6,288 @@
 <title>Sistema de Controle de Antibióticos</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-:root { --primary: #2c3e50; --secondary: #3498db; --accent: #e74c3c; --light: #ecf0f1; --dark: #34495e; --success: #2ecc71; --warning: #f39c12; --text: #333; }
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color: #f5f7f9; color: var(--text); padding: 20px; min-height: 100vh; }
-.container { max-width: 1800px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); overflow: hidden; }
-header { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo i { font-size: 24px; }
-.logo h1 { font-size: 20px; font-weight: 600; }
-.user-info { display: flex; align-items: center; gap: 10px; }
-.user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-nav { background: var(--dark); padding: 0 20px; }
-nav ul { display: flex; list-style: none; }
-nav li a { display: block; color: white; text-decoration: none; padding: 12px 20px; transition: background 0.3s; cursor: pointer; }
-nav li a:hover, nav li a.active { background: var(--secondary); }
-.tab-content { display: none; padding: 20px; animation: fadeIn 0.5s; }
-.tab-content.active { display: block; }
+/* ==========================================================================
+   TEMA VISUAL (nov/2026)
+   Fonte: Atkinson Hyperlegible Next (Braille Institute), escolhida por diferenciar
+   ao máximo caracteres parecidos (0/O, 1/l/I) — importante para doses e códigos.
+   Hospedada junto com o site em /fonts (sem depender do Google Fonts).
+   ========================================================================== */
+@font-face { font-family: 'Atkinson Hyperlegible Next'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/atkinson-hyperlegible-next-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Atkinson Hyperlegible Next'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/atkinson-hyperlegible-next-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Atkinson Hyperlegible Next'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/atkinson-hyperlegible-next-latin-700-normal.woff2') format('woff2'); }
+
+:root {
+  /* Paleta original do sistema (mantida a pedido da farmácia) */
+  --ink: #2C3E50;          /* cabeçalho e títulos */
+  --ink-2: #34495E;
+  --muted: #6B7785;        /* textos de apoio */
+  --paper: #F5F7F9;        /* fundo da aplicação */
+  --surface: #FFFFFF;
+  --rule: #E1E6EB;         /* bordas */
+  --rule-soft: #EEF1F4;
+  --field: #D3D9DF;        /* borda de campos */
+  /* Ação principal (azul original). O nome "teal" ficou do tema anterior. */
+  --teal: #3498DB;
+  --teal-hover: #2980B9;
+  --teal-tint: #EAF4FC;
+  --teal-light: #5DADE2;
+  --focus-ring: rgba(52, 152, 219, 0.22);
+  /* Situações (cores originais) */
+  --ok: #27AE60;      --ok-tint: #E8F5E9;
+  --warn: #F39C12;    --warn-tint: #FFF3E0;
+  --crit: #E74C3C;    --crit-tint: #FFEBEE;    /* erros e ações destrutivas */
+  --stock-crit: #A93226;                       /* "Crítico" do estoque */
+  --mcrit: #8E44AD;   --mcrit-tint: #F3E5F5;
+  --done: #1565C0;    --done-tint: #E3F2FD;    /* Finalizado */
+  /* Nomes antigos, mantidos porque o restante do CSS ainda os usa */
+  --primary: var(--ink); --secondary: var(--teal); --accent: var(--crit); --light: var(--rule-soft);
+  --dark: var(--ink-2); --success: var(--ok); --warning: var(--warn); --text: var(--ink);
+  --radius: 8px; --radius-lg: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif; background: var(--paper); color: var(--ink); font-size: 14px; line-height: 1.45; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+input, select, textarea, button { font: inherit; color: inherit; }
+/* Garante que o atributo hidden esconda mesmo elementos com display definido no CSS */
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.container { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Cabeçalho único: marca, abas e usuário na mesma barra */
+header { background: var(--ink); color: #fff; display: flex; align-items: stretch; gap: 28px; padding: 0 24px; min-height: 58px; position: sticky; top: 0; z-index: 900; }
+.logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo i { display: none; }
+/* Marca: cápsula em duas metades */
+.logo::before { content: ''; width: 30px; height: 13px; border-radius: 7px; background: linear-gradient(90deg, var(--teal-light) 50%, #fff 50%); transform: rotate(-35deg); flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
+.logo h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.005em; white-space: nowrap; }
+nav { display: flex; align-items: stretch; flex: 1; min-width: 0; }
+nav ul { display: flex; list-style: none; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav ul::-webkit-scrollbar { display: none; }
+nav li a { display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 14px; color: rgba(255,255,255,0.72); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; border-bottom: 3px solid transparent; border-top: 3px solid transparent; transition: color 0.15s, border-color 0.15s; }
+nav li a i { font-size: 13px; opacity: 0.8; }
+nav li a:hover { color: #fff; }
+nav li a.active { color: #fff; background: var(--teal); }
+nav li a:focus-visible { outline-offset: -4px; }
+.user-info { display: flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 13px; color: rgba(255,255,255,0.78); }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(111, 201, 191, 0.18); color: var(--teal-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+.logout-btn { background: none; border: none; color: #fff; opacity: 0.7; cursor: pointer; font-size: 15px; width: 34px; height: 34px; border-radius: 6px; transition: opacity 0.15s, background 0.15s; }
+.logout-btn:hover { opacity: 1; background: rgba(255,255,255,0.08); }
+
+/* Conteúdo das abas */
+.tab-content { display: none; padding: 24px 28px 8px; width: 100%; max-width: 1840px; margin: 0 auto; flex: 1; }
+.tab-content.active { display: block; animation: fadeIn 0.18s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.card-title { font-size: 16px; font-weight: 600; color: #666; }
-.card-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
-.card-icon.blue { background: var(--secondary); }
-.card-icon.green { background: var(--success); }
-.card-icon.orange { background: var(--warning); }
-.card-icon.red { background: var(--accent); }
-.card-value { font-size: 28px; font-weight: 700; margin-bottom: 5px; }
-.card-description { font-size: 14px; color: #888; }
-.filters { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-.filter-group { display: flex; flex-direction: column; gap: 5px; }
-.filter-group label { font-size: 12px; font-weight: 600; color: #666; }
-input, select { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; transition: all 0.3s; }
-input:focus, select:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
-.actions { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-.btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
-.btn-primary { background: var(--secondary); color: white; }
-.btn-primary:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.btn-success { background: var(--success); color: white; }
-.btn-success:hover { background: #27ae60; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.btn-danger { background: var(--accent); color: white; }
-.btn-danger:hover { background: #c0392b; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-.data-table-container { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-bottom: 20px; overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { background: #f8f9fa; color: #444; text-align: left; padding: 15px; font-weight: 600; font-size: 14px; white-space: nowrap; }
-.data-table td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
-.data-table tr:nth-child(even) { background: #fafbfc; }
-.data-table tr:hover { background: #f1f7fd; }
-.status { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
-.status-active { background: #e8f5e9; color: #2e7d32; }
-.status-inactive { background: #ffebee; color: #c62828; }
-.status-finalizado { background: #e3f2fd; color: #1565c0; }
-.action-buttons { display: flex; gap: 8px; }
-.action-btn { padding: 6px 10px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
-.edit-btn { background: #e3f2fd; color: #1976d2; }
-.edit-btn:hover { background: #bbdefb; }
-.delete-btn { background: #ffebee; color: #d32f2f; }
-.delete-btn:hover { background: #ffcdd2; }
-.pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 5px; flex-wrap: wrap; }
-.pagination button { padding: 8px 14px; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
-.pagination button:hover:not(:disabled) { background: #f5f5f5; }
-.pagination button.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+@media (prefers-reduced-motion: reduce) { .tab-content.active { animation: none; } * { transition: none !important; } }
+.tab-content > h2 { font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--ink); margin-bottom: 4px; }
+.tab-content > h2 + p { color: var(--muted); font-size: 14px; max-width: 90ch; margin-bottom: 18px; }
+.tab-content > h2 + p strong { color: var(--ink); }
+
+/* Faixa de indicadores (antes: 4 cartões soltos) */
+.dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
+.card { background: var(--surface); padding: 14px 20px 14px; display: flex; flex-direction: column; position: relative; border-left: 1px solid var(--rule); }
+.card:first-child { border-left: none; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--muted); }
+.card-icon { display: none; }
+.card-value { font-size: 30px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--ink); }
+.card-description { font-size: 12.5px; color: var(--muted); }
+/* Na aba Registros cada indicador ganha a cor do status que representa */
+#registros .dashboard-cards .card::before { content: ''; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--teal); }
+#registros .dashboard-cards .card:nth-child(2)::before { background: var(--ok); }
+#registros .dashboard-cards .card:nth-child(3)::before { background: var(--warn); }
+#registros .dashboard-cards .card:nth-child(4)::before { background: var(--crit); }
+
+/* Filtros */
+.filters { background: var(--surface); padding: 14px 16px; border: 1px solid var(--rule); border-radius: var(--radius-lg); margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 14px; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.filter-group label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+input, select { height: 38px; padding: 0 11px; border: 1px solid var(--field); border-radius: 6px; font-size: 14px; background-color: var(--surface); transition: border-color 0.15s, box-shadow 0.15s; }
+input[type="checkbox"], input[type="radio"] { height: auto; }
+input::placeholder { color: #8A989D; }
+input:focus, select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* Barra de ações */
+.actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px 16px; }
+.actions > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn { height: 38px; padding: 0 15px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.btn i { font-size: 13px; }
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-hover); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--field); }
+.btn-secondary:hover { background: var(--rule-soft); border-color: #B5C2BE; }
+.btn-success { background: var(--ok); color: #fff; }
+.btn-success:hover { background: #276A42; }
+/* Vermelho só para ações destrutivas */
+.btn-danger { background: var(--surface); color: var(--crit); border-color: #E7B8B4; }
+.btn-danger:hover { background: var(--crit-tint); border-color: var(--crit); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tabelas */
+.data-table-container { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: auto; }
+/* Estoque: tabela com rolagem própria e cabeçalho fixo */
+#estoque .data-table-container { max-height: calc(100vh - 120px); }
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.data-table th { position: sticky; top: 0; z-index: 2; background: #F6F8F7; color: var(--muted); text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12.5px; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); font-size: 13.5px; vertical-align: middle; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: #F3F8F7; }
+/* Tabela de Registros (colunas: 1 ID oculto, 2 Data registro, 3 Setor, 4 Paciente, 5 Medicamento,
+   6 Via, 7 Dosagem, 8 Tratamento, 9 Posologia, 10 Início, 11 Duração, 12 Término, 13 Dias restantes,
+   14 Ampola diária, 15 Total, 16 Status, 17 Ações). Compacta para caber em telas de 1366px, e
+   Status/Ações ficam presos à direita quando a tabela precisa rolar. */
+#mainTable th { white-space: normal; line-height: 1.25; vertical-align: bottom; }
+#mainTable th, #mainTable td { padding-left: 7px; padding-right: 7px; }
+#mainTable th:nth-child(2), #mainTable td:nth-child(2) { padding-left: 14px; }
+#mainTable td { font-size: 13px; }
+#mainTable td:nth-child(4) { min-width: 140px; font-weight: 600; }
+#mainTable td:nth-child(5) { min-width: 128px; }
+#mainTable th:nth-child(2), #mainTable th:nth-child(13), #mainTable th:nth-child(14), #mainTable th:nth-child(15) { min-width: 64px; }
+#mainTable td:nth-child(n+13):nth-child(-n+15), #mainTable th:nth-child(n+13):nth-child(-n+15) { text-align: center; }
+#mainTable td:nth-child(2), #mainTable td:nth-child(3), #mainTable td:nth-child(10), #mainTable td:nth-child(12) { white-space: nowrap; }
+#mainTable th:nth-child(16), #mainTable td:nth-child(16), #mainTable th:nth-child(17), #mainTable td:nth-child(17) { position: sticky; background: var(--surface); }
+#mainTable th:nth-child(16), #mainTable th:nth-child(17) { background: #F6F8F7; z-index: 3; }
+#mainTable th:nth-child(17), #mainTable td:nth-child(17) { right: 0; width: 78px; min-width: 78px; }
+#mainTable th:nth-child(16), #mainTable td:nth-child(16) { right: 78px; box-shadow: -1px 0 0 var(--rule); }
+#mainTable tbody tr:hover td:nth-child(16), #mainTable tbody tr:hover td:nth-child(17) { background: #F3F8F7; }
+
+/* Status do tratamento */
+.status { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-block; white-space: nowrap; }
+.status-active { background: var(--ok-tint); color: #2E7D32; }
+.status-inactive { background: var(--crit-tint); color: #C62828; }   /* Suspenso */
+.status-finalizado { background: var(--done-tint); color: var(--done); }
+.action-buttons { display: flex; gap: 6px; }
+.action-btn { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; transition: background 0.15s, border-color 0.15s; }
+.edit-btn { background: var(--teal-tint); color: var(--teal); }
+.edit-btn:hover { border-color: var(--teal); }
+.delete-btn { background: transparent; color: #A0524C; }
+.delete-btn:hover { background: var(--crit-tint); color: var(--crit); }
+
+/* Paginação */
+.pagination { display: flex; justify-content: center; align-items: center; margin: 4px 0 16px; gap: 4px; flex-wrap: wrap; }
+.pagination button { min-width: 34px; height: 34px; padding: 0 10px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums; transition: background 0.15s; }
+.pagination button:hover:not(:disabled) { background: var(--rule-soft); }
+.pagination button.active { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 700; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.pagination-info { font-size: 13px; color: #777; margin-right: 10px; }
-footer { background: white; padding: 15px 20px; text-align: center; font-size: 14px; color: #666; margin-top: 20px; }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: white; padding: 25px; border-radius: 12px; width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-.modal-header h2 { font-size: 20px; color: var(--primary); }
-.close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; transition: all 0.3s; }
-.close:hover { color: var(--accent); }
-.form-group { margin-bottom: 18px; }
-.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #555; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-.form-hint { display: block; margin-top: 6px; font-size: 12px; color: #888; }
+.pagination-info { font-size: 13px; color: var(--muted); margin-right: 10px; }
+footer { padding: 18px 28px 22px; text-align: center; font-size: 12.5px; color: var(--muted); }
+
+/* Janelas (modais) */
+.modal { display: none; position: fixed; inset: 0; background: rgba(17, 32, 38, 0.55); justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+.modal-content { background: var(--surface); padding: 24px 26px 0; border-radius: var(--radius-lg); width: 640px; max-width: 100%; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(17, 32, 38, 0.28); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.modal-header h2 { font-size: 19px; color: var(--ink); }
+.close { background: none; border: none; font-size: 24px; line-height: 1; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+.close:hover { background: var(--rule-soft); color: var(--ink); }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13.5px; color: var(--ink); }
+.form-group input, .form-group select, .form-group textarea { width: 100%; }
+.form-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.form-row { display: flex; gap: 14px; }
+.form-row .form-group { flex: 1; min-width: 0; }
+/* Rodapé do formulário fixo: "Salvar" sempre visível, mesmo rolando */
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin: 8px -26px 0; padding: 14px 26px; border-top: 1px solid var(--rule); position: sticky; bottom: 0; background: var(--surface); }
+
+/* Campo Medicamento (lista pesquisável) */
 .med-select-wrapper { position: relative; }
-.med-select-wrapper input#inputMedicamentoSearch.invalid-selection { border-color: var(--accent); }
-.med-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 220px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); z-index: 20; }
+.med-select-wrapper input#inputMedicamentoSearch.invalid-selection { border-color: var(--crit); }
+.med-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 240px; overflow-y: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); box-shadow: 0 12px 28px rgba(17, 32, 38, 0.16); z-index: 20; padding: 4px; }
 .med-dropdown.open { display: block; }
-.med-dropdown-option { padding: 9px 12px; font-size: 14px; cursor: pointer; }
-.med-dropdown-option:hover, .med-dropdown-option.highlighted { background: var(--light); }
-.med-dropdown-empty { padding: 9px 12px; font-size: 13px; color: #888; font-style: italic; }
-.med-migration-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
+.med-dropdown-option { padding: 8px 10px; font-size: 14px; cursor: pointer; border-radius: 5px; }
+.med-dropdown-option:hover, .med-dropdown-option.highlighted { background: var(--teal-tint); color: var(--teal-hover); }
+.med-dropdown-empty { padding: 9px 12px; font-size: 13px; color: var(--muted); }
+.med-migration-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule-soft); }
 .med-migration-row:last-child { border-bottom: none; }
 .med-migration-old { flex: 1; font-size: 14px; }
-.med-migration-old strong { display: block; font-size: 14px; color: var(--text); }
-.med-migration-old span { font-size: 12px; color: #888; }
-.med-migration-row select { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
-.med-migration-arrow { color: #aaa; }
-.form-row { display: flex; gap: 15px; }
-.form-row .form-group { flex: 1; }
-.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; }
-.notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 1100; opacity: 0; transform: translateX(100%); transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; }
-.notification.show { opacity: 1; transform: translateX(0); }
-.notification.success { background: var(--success); }
-.notification.error { background: var(--accent); }
-.empty-state { text-align: center; padding: 40px 20px; color: #777; }
-.empty-state i { font-size: 56px; margin-bottom: 15px; color: #ddd; }
-.empty-state h3 { margin-bottom: 10px; font-weight: 600; }
-@media (max-width: 1200px) { .data-table-container { overflow-x: auto; } .data-table { min-width: 1200px; } }
-@media (max-width: 768px) {
-  nav ul { flex-direction: column; }
-  .filters { grid-template-columns: 1fr; }
-  .actions { flex-direction: column; }
-  .actions > div { display: flex; flex-wrap: wrap; gap: 10px; }
-  .btn { flex: 1; justify-content: center; }
-  .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
-  .action-buttons { flex-direction: column; gap: 5px; }
-  .form-row { flex-direction: column; gap: 0; }
+.med-migration-old strong { display: block; font-size: 14px; color: var(--ink); }
+.med-migration-old span { font-size: 12px; color: var(--muted); }
+.med-migration-row select { flex: 1; }
+.med-migration-arrow { color: #9AA7AB; }
+
+/* Avisos */
+.notification { position: fixed; bottom: 22px; right: 22px; max-width: min(460px, calc(100vw - 44px)); padding: 13px 18px; border-radius: var(--radius); color: #fff; font-weight: 600; font-size: 14px; z-index: 1100; opacity: 0; transform: translateY(12px); transition: opacity 0.2s, transform 0.2s; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 30px rgba(17, 32, 38, 0.25); pointer-events: none; }
+.notification.show { opacity: 1; transform: translateY(0); }
+.notification.success { background: #27AE60; }
+.notification.error { background: var(--crit); }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); background: var(--surface); border: 1px dashed var(--rule); border-radius: var(--radius-lg); margin-bottom: 16px; }
+.empty-state i { font-size: 40px; margin-bottom: 12px; color: #B9C5C1; }
+.empty-state h3 { margin-bottom: 6px; font-weight: 700; color: var(--ink); font-size: 16px; }
+
+@media (max-width: 1400px) { .tab-content { padding-left: 18px; padding-right: 18px; } }
+@media (max-width: 1100px) {
+  header { flex-wrap: wrap; gap: 0 16px; padding: 0 16px; }
+  .logo { min-height: 52px; }
+  .user-info { margin-left: auto; }
+  nav { order: 3; flex-basis: 100%; border-top: 1px solid rgba(255,255,255,0.08); }
+  nav li a { padding: 12px 12px; }
+  .tab-content { padding: 18px 16px 8px; }
 }
-.days-warning { color: #e74c3c; font-weight: bold; }
-.days-normal { color: #27ae60; }
-.stock-normal { text-align: center; font-weight: 600; color: #2e7d32; }
-.stock-atencao { text-align: center; font-weight: 700; color: #fff; background: #f39c12; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
-.stock-critico { text-align: center; font-weight: 700; color: #fff; background: #a93226; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
-.stock-mcritico { text-align: center; font-weight: 700; color: #fff; background: #8e44ad; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+@media (max-width: 768px) {
+  #loggedUserEmail { display: none; }
+  .filters { grid-template-columns: 1fr; }
+  .actions { align-items: stretch; }
+  .actions > div { width: 100%; }
+  .btn { flex: 1; }
+  .data-table th, .data-table td { padding: 8px 10px; font-size: 12.5px; }
+  .form-row { flex-direction: column; gap: 0; }
+  .dashboard-cards { grid-template-columns: repeat(2, 1fr); }
+  .card:nth-child(3) { border-left: none; }
+  .card:nth-child(n+3) { border-top: 1px solid var(--rule); }
+  .data-table-container { max-height: none; }
+}
+.days-warning { color: var(--crit); font-weight: bold; }
+.days-normal { color: var(--ok); }
+.stock-normal { text-align: center; font-weight: 600; color: #2E7D32; }
+.stock-atencao { text-align: center; font-weight: 700; color: #fff; background: var(--warn); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+.stock-critico { text-align: center; font-weight: 700; color: #fff; background: var(--crit); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
+.stock-mcritico { text-align: center; font-weight: 700; color: #fff; background: var(--mcrit); border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 40px; }
 .stock-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; font-size: 13px; align-items: center; }
 .stock-legend span { display: flex; align-items: center; gap: 6px; }
 .stock-legend i { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
-.protocol-note { background: #fff8e1; border-left: 4px solid var(--warning); padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #555; }
+.protocol-note { background: var(--warn-tint); border-left: 4px solid var(--warning); padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: var(--muted); }
 .protocol-note strong { color: var(--accent); }
-.bic-yes { color: #2e7d32; font-weight: 700; }
-.bic-no { color: #999; }
-.stock-input { width: 80px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
-.stock-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+.bic-yes { color: #2E7D32; font-weight: 700; }
+.bic-no { color: #8A989D; }
+.stock-input { width: 80px; padding: 6px 8px; border: 1px solid var(--field); border-radius: 6px; font-size: 13px; text-align: center; }
+.stock-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px var(--focus-ring); }
 .stock-updated { animation: stockPulse 0.6s ease; }
 @keyframes stockPulse { 0% { background: #fff9c4; } 100% { background: transparent; } }
-.stock-tratamento-value { display: inline-block; min-width: 50px; text-align: center; font-weight: 600; color: #555; background: #f0f2f5; border-radius: 6px; padding: 6px 8px; }
-.stock-unmatched-warning { background: #fff8e1; border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: 6px; font-size: 12.5px; color: #555; margin-bottom: 15px; }
+.stock-tratamento-value { display: inline-block; min-width: 50px; text-align: center; font-weight: 600; color: var(--muted); background: #f0f2f5; border-radius: 6px; padding: 6px 8px; }
+.stock-unmatched-warning { background: var(--warn-tint); border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: 6px; font-size: 12.5px; color: var(--muted); margin-bottom: 15px; }
 .stock-unmatched-warning strong { color: var(--accent); }
-.expiring-alert { background: #eaf4fc; border-left: 4px solid var(--secondary); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: #34495e; margin-bottom: 15px; }
+.expiring-alert { background: var(--teal-tint); border-left: 4px solid var(--secondary); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: #34495e; margin-bottom: 15px; }
 .expiring-alert summary { cursor: pointer; list-style: none; }
 .expiring-alert summary::-webkit-details-marker { display: none; }
 .expiring-alert .exp-hint { color: var(--secondary); font-size: 12px; margin-left: 6px; }
 .expiring-alert ul { margin: 10px 0 2px; padding-left: 0; list-style: none; display: grid; gap: 6px; }
 .expiring-alert li { font-size: 12.5px; }
-.expiring-alert .exp-when { display: inline-block; min-width: 62px; text-align: center; padding: 1px 8px; border-radius: 10px; background: #fff3e0; color: #e65100; font-weight: 700; font-size: 11px; margin-right: 6px; }
-.expiring-alert .exp-when.today { background: #ffebee; color: #c62828; }
+.expiring-alert .exp-when { display: inline-block; min-width: 62px; text-align: center; padding: 1px 8px; border-radius: 10px; background: var(--warn-tint); color: #E65100; font-weight: 700; font-size: 11px; margin-right: 6px; }
+.expiring-alert .exp-when.today { background: var(--crit-tint); color: var(--crit); }
 
 /* Aba Configurações */
 .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
-.config-card { background: white; border-radius: 10px; padding: 22px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.config-card { background: white; border-radius: 10px; padding: 22px; box-shadow: none; }
 .config-card-full { grid-column: 1 / -1; }
-.config-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #eee; }
+.config-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule-soft); }
 .config-card-header .card-icon { width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; }
 .config-card-header h3 { font-size: 16px; color: var(--primary); }
-.config-card-header p { font-size: 12px; color: #888; margin-top: 2px; }
+.config-card-header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .notify-option { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 8px; transition: background 0.2s; }
-.notify-option:hover { background: #f8f9fa; }
+.notify-option:hover { background: #F6F8F7; }
 .notify-option input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--secondary); cursor: pointer; }
 .notify-option .notify-text { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
-.notify-option .notify-title { font-weight: 600; font-size: 14px; color: #333; }
-.notify-option .notify-desc { font-size: 12px; color: #888; }
-.backup-warning { background: #fff8e1; border-left: 4px solid var(--warning); padding: 14px 16px; border-radius: 6px; font-size: 13px; color: #555; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; }
+.notify-option .notify-title { font-weight: 600; font-size: 14px; color: var(--ink); }
+.notify-option .notify-desc { font-size: 12px; color: var(--muted); }
+.backup-warning { background: var(--warn-tint); border-left: 4px solid var(--warning); padding: 14px 16px; border-radius: 6px; font-size: 13px; color: var(--muted); margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start; }
 .backup-warning i { color: var(--warning); font-size: 18px; margin-top: 2px; }
-.backup-status { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
-.backup-status-label { font-size: 13px; color: #666; }
+.backup-status { display: flex; align-items: center; justify-content: space-between; background: #F6F8F7; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.backup-status-label { font-size: 13px; color: var(--muted); }
 .backup-status-value { font-weight: 700; font-size: 14px; }
 .backup-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.backup-badge.ok { background: #e8f5e9; color: #2e7d32; }
-.backup-badge.warn { background: #fff3e0; color: #e65100; }
-.backup-badge.never { background: #ffebee; color: #c62828; }
+.backup-badge.ok { background: var(--ok-tint); color: #2E7D32; }
+.backup-badge.warn { background: var(--warn-tint); color: #E65100; }
+.backup-badge.never { background: var(--crit-tint); color: var(--crit); }
 .config-tips { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.config-tips li { display: flex; gap: 10px; font-size: 13px; color: #555; align-items: flex-start; }
+.config-tips li { display: flex; gap: 10px; font-size: 13px; color: var(--muted); align-items: flex-start; }
 .config-tips li i { color: var(--secondary); margin-top: 2px; width: 14px; }
 
 /* Tela de login */
@@ -177,12 +295,12 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 .login-box { background: white; border-radius: 14px; padding: 36px 32px; width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; }
 .login-box .login-icon { width: 60px; height: 60px; border-radius: 50%; background: var(--secondary); color: white; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px; }
 .login-box h2 { color: var(--primary); margin-bottom: 6px; }
-.login-box p { color: #888; font-size: 13px; margin-bottom: 24px; }
+.login-box p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
 .login-box .form-group { text-align: left; margin-bottom: 16px; }
 .login-box button { width: 100%; justify-content: center; margin-top: 6px; }
-.login-error { background: #ffebee; color: #c62828; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+.login-error { background: var(--crit-tint); color: var(--crit); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
 .login-error.show { display: block; }
-.login-loading { font-size: 13px; color: #888; margin-top: 12px; display: none; }
+.login-loading { font-size: 13px; color: var(--muted); margin-top: 12px; display: none; }
 .login-loading.show { display: block; }
 #appContainer { display: none; }
 #appContainer.visible { display: block; }
@@ -194,50 +312,48 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 .col-filter-btn { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; margin-left: 6px; padding: 2px 4px; border-radius: 3px; font-size: 11px; vertical-align: middle; }
 .col-filter-btn:hover { opacity: 1; background: rgba(255,255,255,0.15); }
 .col-filter-btn.active { opacity: 1; color: #ffd54f; }
-.col-filter-panel { position: absolute; z-index: 3000; background: white; color: #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); width: 240px; font-size: 13px; padding: 10px; display: none; }
+.col-filter-panel { position: absolute; z-index: 3000; background: white; color: var(--ink); border-radius: 8px; box-shadow: 0 14px 34px rgba(17, 32, 38, 0.2); border: 1px solid var(--rule); width: 240px; font-size: 13px; padding: 10px; display: none; }
 .col-filter-panel.open { display: block; }
-.col-filter-panel .cf-sort-btn { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: none; padding: 7px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: #333; }
-.col-filter-panel .cf-sort-btn:hover { background: #f2f4f6; }
-.col-filter-panel hr { border: none; border-top: 1px solid #eee; margin: 6px 0; }
-.col-filter-panel .cf-search { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 12.5px; margin-bottom: 6px; }
-.col-filter-panel .cf-list { max-height: 160px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; padding: 4px 2px; margin-bottom: 8px; }
+.col-filter-panel .cf-sort-btn { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: none; padding: 7px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: var(--ink); }
+.col-filter-panel .cf-sort-btn:hover { background: var(--rule-soft); }
+.col-filter-panel hr { border: none; border-top: 1px solid var(--rule-soft); margin: 6px 0; }
+.col-filter-panel .cf-search { width: 100%; padding: 6px 8px; border: 1px solid var(--field); border-radius: 5px; font-size: 12.5px; margin-bottom: 6px; }
+.col-filter-panel .cf-list { max-height: 160px; overflow-y: auto; border: 1px solid var(--rule-soft); border-radius: 5px; padding: 4px 2px; margin-bottom: 8px; }
 .col-filter-panel .cf-option { display: flex; align-items: center; gap: 7px; padding: 4px 6px; font-size: 12.5px; border-radius: 4px; }
-.col-filter-panel .cf-option:hover { background: #f7f8fa; }
+.col-filter-panel .cf-option:hover { background: var(--rule-soft); }
 .col-filter-panel .cf-option input { accent-color: var(--secondary); }
 .col-filter-panel .cf-option label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .col-filter-panel .cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .col-filter-panel .cf-actions button { padding: 5px 12px; border-radius: 5px; border: none; font-size: 12px; cursor: pointer; }
 .col-filter-panel .cf-actions .cf-apply { background: var(--secondary); color: white; }
-.col-filter-panel .cf-actions .cf-cancel { background: #eee; color: #555; }
-.print-orientation { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #555; margin-right: 4px; }
-.print-orientation select { padding: 5px 6px; border-radius: 5px; border: 1px solid #ddd; font-size: 12.5px; }
+.col-filter-panel .cf-actions .cf-cancel { background: var(--rule-soft); color: var(--muted); }
 /* ---------- Relatórios: filtros avançados, seleção múltipla e gráficos ---------- */
 .rep-filters { align-items: end; }
 .rep-filters .filter-group > select, .rep-period-nav input { width: 100%; }
 @media (min-width: 900px) { .rep-period-group { grid-column: span 2; } }
 .rep-period-nav { display: flex; gap: 6px; align-items: stretch; }
 .rep-period-nav input { flex: 1; min-width: 130px; }
-.rep-nav-btn { border: 1px solid #ddd; background: white; border-radius: 6px; padding: 0 11px; cursor: pointer; color: #555; font-size: 13px; transition: all 0.2s; }
+.rep-nav-btn { border: 1px solid var(--field); background: white; border-radius: 6px; padding: 0 11px; cursor: pointer; color: var(--muted); font-size: 13px; transition: all 0.2s; }
 .rep-nav-btn:hover { background: var(--light); color: var(--primary); }
 .rep-nav-today { font-weight: 600; font-size: 12px; }
-.rep-filter-summary { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #eee; font-size: 13px; color: #666; }
+.rep-filter-summary { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--rule-soft); font-size: 13px; color: var(--muted); }
 .rep-clear-btn { border: none; background: none; color: var(--secondary); font-weight: 600; font-size: 13px; cursor: pointer; display: none; }
 .rep-clear-btn.visible { display: inline-flex; align-items: center; gap: 6px; }
 .rep-clear-btn:hover { text-decoration: underline; }
 .ms { position: relative; }
-.ms-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 14px; color: #333; cursor: pointer; text-align: left; transition: all 0.3s; }
-.ms-btn:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+.ms-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--field); border-radius: 6px; background: white; font-size: 14px; color: var(--ink); cursor: pointer; text-align: left; transition: all 0.3s; }
+.ms-btn:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px var(--focus-ring); }
 .ms-btn .ms-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ms-btn i { font-size: 11px; color: #888; flex-shrink: 0; }
-.ms.ms-active .ms-btn { border-color: var(--secondary); background: #f3f9fe; }
-.ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); padding: 10px; z-index: 3000; }
+.ms-btn i { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.ms.ms-active .ms-btn { border-color: var(--secondary); background: var(--teal-tint); }
+.ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 360px; background: white; border-radius: 8px; box-shadow: 0 14px 34px rgba(17, 32, 38, 0.2); border: 1px solid var(--rule); padding: 10px; z-index: 3000; }
 .ms.ms-open .ms-panel { display: block; }
-.ms-search { width: 100%; padding: 7px 9px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; margin-bottom: 6px; }
-.ms-panel .ms-opt { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 13px; font-weight: 400; border-radius: 4px; cursor: pointer; color: #333; }
-.ms-panel .ms-opt:hover { background: #f7f8fa; }
+.ms-search { width: 100%; padding: 7px 9px; border: 1px solid var(--field); border-radius: 5px; font-size: 13px; margin-bottom: 6px; }
+.ms-panel .ms-opt { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 13px; font-weight: 400; border-radius: 4px; cursor: pointer; color: var(--ink); }
+.ms-panel .ms-opt:hover { background: var(--rule-soft); }
 .ms-panel .ms-opt input[type="checkbox"] { width: 16px; height: 16px; padding: 0; margin: 0; border: none; flex: 0 0 auto; accent-color: var(--secondary); }
 .ms-panel .ms-opt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ms-panel .ms-all { font-weight: 600; border-bottom: 1px solid #eee; margin-bottom: 4px; border-radius: 0; }
+.ms-panel .ms-all { font-weight: 600; border-bottom: 1px solid var(--rule-soft); margin-bottom: 4px; border-radius: 0; }
 .ms-list { max-height: 220px; overflow-y: auto; }
 .rep-cards { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
 .rep-cards .card-title { font-size: 14px; }
@@ -246,25 +362,152 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 .rep-section-title { font-size: 16px; color: var(--primary); margin: 6px 0 10px 2px; }
 .rep-matrix th, .rep-matrix td { text-align: center; }
 .rep-matrix th:first-child, .rep-matrix td:first-child { text-align: left; }
-.rep-matrix .rep-cell-zero { color: #c3c8ce; }
-.rep-matrix .rep-cell-max { font-weight: 700; color: var(--primary); background: #eaf4fc; }
-.rep-matrix .rep-col-total { font-weight: 700; background: #f4f6f8; }
-.rep-matrix tfoot td { font-weight: 700; background: #eef1f4; border-top: 2px solid #dfe3e8; }
-.rep-matrix tfoot tr.rep-foot-sub td { font-weight: 400; color: #666; background: #f8f9fa; border-top: 1px solid #eee; }
+.rep-matrix .rep-cell-zero { color: #B9C5C1; }
+.rep-matrix .rep-cell-max { font-weight: 700; color: var(--primary); background: var(--teal-tint); }
+.rep-matrix .rep-col-total { font-weight: 700; background: #F1F4F3; }
+.rep-matrix tfoot td { font-weight: 700; background: #ECF0EF; border-top: 2px solid var(--rule); }
+.rep-matrix tfoot tr.rep-foot-sub td { font-weight: 400; color: var(--muted); background: #F6F8F7; border-top: 1px solid var(--rule-soft); }
 .rep-small-table { min-width: 0 !important; }
 .rep-qty { white-space: nowrap; }
-.rep-bar { height: 5px; background: #eef1f4; border-radius: 3px; margin-top: 5px; overflow: hidden; min-width: 90px; }
+.rep-bar { height: 5px; background: #ECF0EF; border-radius: 3px; margin-top: 5px; overflow: hidden; min-width: 90px; }
 .rep-bar span { display: block; height: 100%; background: var(--secondary); border-radius: 3px; }
-.rep-timeline-card { background: white; border-radius: 10px; padding: 16px 14px 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); overflow-x: auto; }
+.rep-timeline-card { background: white; border-radius: 10px; padding: 16px 14px 10px; box-shadow: none; overflow-x: auto; }
 .rep-timeline { display: flex; align-items: flex-end; gap: 4px; }
 .rep-tl-col { flex: 1 0 18px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-.rep-tl-val { font-size: 11px; color: #555; font-weight: 600; height: 15px; }
-.rep-tl-barwrap { height: 100px; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid #e3e6ea; }
+.rep-tl-val { font-size: 11px; color: var(--muted); font-weight: 600; height: 15px; }
+.rep-tl-barwrap { height: 100px; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--rule); }
 .rep-tl-bar { width: 70%; max-width: 38px; background: var(--secondary); border-radius: 4px 4px 0 0; transition: height 0.3s; }
 .rep-tl-col.sel .rep-tl-bar { background: var(--warning); }
-.rep-tl-lbl { font-size: 10.5px; color: #888; margin-top: 4px; white-space: nowrap; }
-.rep-empty { text-align: center; color: #888; padding: 40px 10px; width: 100%; }
+.rep-tl-lbl { font-size: 10.5px; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+.rep-empty { text-align: center; color: var(--muted); padding: 40px 10px; width: 100%; }
 .col-id-hidden { display: none; }
+
+/* ==========================================================================
+   TEMA VISUAL — componentes das abas (complementa a base no início do <style>)
+   ========================================================================== */
+/* Estoque: o "Disponível" vira uma cápsula na cor da situação */
+.stock-normal, .stock-atencao, .stock-critico, .stock-mcritico { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; height: 26px; padding: 0 12px; border-radius: 999px; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.stock-normal { background: var(--ok-tint); color: #2E7D32; }
+.stock-atencao { background: var(--warn); color: #fff; }
+.stock-critico { background: var(--stock-crit); color: #fff; }
+.stock-mcritico { background: var(--mcrit); color: #fff; }
+.stock-legend { gap: 8px; margin-bottom: 16px; }
+.stock-legend span { gap: 7px; padding: 4px 11px 4px 8px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); font-size: 12.5px; font-weight: 600; }
+.stock-legend i { width: 18px; height: 9px; border-radius: 5px; }
+.stock-input { width: 88px; height: 32px; padding: 0 8px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.stock-tratamento-value { min-width: 46px; background: var(--rule-soft); color: var(--ink); padding: 4px 8px; font-variant-numeric: tabular-nums; }
+#stockTable th:nth-child(n+3), #stockTable td:nth-child(n+3) { text-align: center; }
+#stockTable td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+#stockTable td:nth-child(2) { font-weight: 600; }
+.stock-unmatched-warning { margin: 12px 12px 4px; }
+.stock-updated { animation: stockPulse 0.6s ease; }
+@keyframes stockPulse { 0% { background: var(--warn-tint); } 100% { background: transparent; } }
+
+/* Painel de filtros (Registros e Estoque) */
+.filter-panel { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: 14px 16px 12px; margin-bottom: 14px; display: grid; gap: 10px; }
+.fp-top { display: flex; align-items: center; gap: 12px; }
+.fp-search { position: relative; flex: 1; min-width: 0; }
+.fp-search > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+.fp-search input { width: 100%; height: 42px; padding: 0 40px 0 40px; font-size: 15px; background: #FAFBFC; }
+.fp-search input:focus { background: var(--surface); }
+.fp-search input::-webkit-search-cancel-button { display: none; }
+.fp-clear-search { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: none; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.fp-clear-search:hover { background: var(--rule-soft); color: var(--ink); }
+.fp-top .btn { height: 42px; }
+.fp-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.fp-label { width: 64px; flex-shrink: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { --chip-color: var(--teal); height: 30px; padding: 0 12px; border: 1px solid var(--field); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.chip:hover { background: var(--rule-soft); border-color: #B9C2CB; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--chip-color); flex-shrink: 0; }
+.chip .count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; font-size: 12px; }
+.chip[aria-pressed="true"] { background: var(--chip-color); border-color: var(--chip-color); color: #fff; }
+.chip[aria-pressed="true"] .dot { background: #fff; }
+.chip[aria-pressed="true"] .count { color: rgba(255, 255, 255, 0.85); }
+.fp-range { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.fp-range label { display: inline-flex; align-items: center; gap: 6px; }
+.fp-range input { height: 30px; font-size: 13px; padding: 0 8px; }
+.fp-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding-top: 10px; border-top: 1px solid var(--rule-soft); }
+.fp-result { font-size: 14px; color: var(--ink); white-space: nowrap; }
+.fp-result strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.fp-active { font-size: 13px; color: var(--muted); min-width: 0; }
+.fp-help i { margin-right: 4px; }
+.fp-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-link { height: 38px; padding: 0 8px; border: none; background: none; color: var(--teal-hover); font-weight: 600; font-size: 13.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; }
+.btn-link:hover { background: var(--teal-tint); }
+/* Cartões de indicadores funcionam como atalho de filtro */
+#registros .card-filter { cursor: pointer; transition: background 0.15s; }
+#registros .card-filter:hover { background: #FAFBFC; }
+#registros .card-filter.is-selected { background: var(--teal-tint); }
+@media (max-width: 768px) {
+  .fp-top { flex-wrap: wrap; }
+  .fp-search { flex: 1 1 100%; }
+  .fp-top .btn { width: 100%; }
+  .fp-label { width: 100%; }
+  .fp-actions { margin-left: 0; width: 100%; }
+  .fp-actions .btn { flex: 1; }
+}
+
+/* Avisos em faixa (protocolo, estoque, vencimentos, backup) */
+.protocol-note, .stock-unmatched-warning, .backup-warning { background: var(--warn-tint); border: 1px solid #F1D3B3; border-left: 4px solid var(--warn); border-radius: var(--radius); color: #4A3A2A; }
+.protocol-note strong, .stock-unmatched-warning strong { color: #E65100; }
+.expiring-alert { background: var(--teal-tint); border: 1px solid #C5E3DF; border-left: 4px solid var(--teal); border-radius: var(--radius); color: var(--ink); padding: 11px 14px; }
+.expiring-alert .exp-hint { color: var(--teal); }
+.expiring-alert .exp-when { background: var(--warn-tint); color: #E65100; }
+.expiring-alert .exp-when.today { background: var(--crit-tint); color: var(--crit); }
+.bic-yes { color: #2E7D32; }
+
+/* Configurações */
+.config-card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: 20px 22px; }
+.config-card-header { border-bottom-color: var(--rule-soft); }
+.config-card-header .card-icon { display: flex; align-items: center; justify-content: center; border-radius: 8px; width: 36px; height: 36px; background: var(--teal-tint) !important; color: var(--teal); font-size: 16px; }
+.config-card-header h3 { color: var(--ink); }
+.config-card-header p { color: var(--muted); }
+.notify-option:hover { background: var(--rule-soft); }
+.notify-option input[type="checkbox"] { accent-color: var(--teal); }
+.config-tips li i { color: var(--teal); }
+.config-tips li { display: block; position: relative; padding-left: 24px; }
+.config-tips li i { position: absolute; left: 0; top: 3px; }
+.backup-status { background: #F6F8F7; border: 1px solid var(--rule-soft); }
+
+/* Relatórios */
+.rep-cards { gap: 0; }
+.rep-cards .card { border-left: 1px solid var(--rule); }
+.rep-cards .card:first-child { border-left: none; }
+.rep-cards .card-value { font-size: 20px; line-height: 1.3; }
+.rep-section-title { font-size: 16px; font-weight: 700; color: var(--ink); margin: 18px 0 10px; }
+.rep-timeline-card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); }
+.rep-bar span, .rep-tl-bar { background: var(--teal); }
+.rep-tl-col.sel .rep-tl-bar { background: var(--warn); }
+.rep-nav-btn { height: 38px; background: var(--surface); }
+.rep-nav-btn:hover { background: var(--rule-soft); color: var(--ink); }
+.rep-clear-btn { color: var(--teal); }
+.ms-btn { height: 38px; padding: 0 11px; }
+.ms.ms-active .ms-btn { border-color: var(--teal); background: var(--teal-tint); }
+.ms-panel .ms-opt input[type="checkbox"], .col-filter-panel .cf-option input { accent-color: var(--teal); }
+.rep-matrix .rep-cell-max { color: var(--teal-hover); background: var(--teal-tint); }
+
+/* Filtro por coluna (cabeçalho agora é claro) */
+.col-filter-btn { color: var(--muted); opacity: 0.6; }
+.col-filter-btn:hover { background: var(--rule-soft); }
+.col-filter-btn.active { opacity: 1; color: var(--teal); background: var(--teal-tint); }
+.col-filter-panel .cf-actions .cf-apply { background: var(--teal); }
+.col-filter-panel .cf-actions .cf-cancel { background: var(--rule-soft); color: var(--ink); }
+.col-filter-panel .cf-actions button { height: 30px; font-weight: 600; }
+
+/* Tela de entrada */
+#loginScreen { background: linear-gradient(135deg, var(--ink), var(--ink-2)); }
+.login-box { border-radius: 14px; padding: 34px 32px 30px; max-width: 380px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
+.login-box .login-icon { width: auto; height: 46px; background: none; margin: 0 auto 14px; }
+.login-box .login-icon i { display: none; }
+.login-box .login-icon::before { content: ''; width: 46px; height: 20px; border-radius: 10px; background: linear-gradient(90deg, var(--teal) 50%, var(--teal-light) 50%); transform: rotate(-35deg); }
+.login-box h2 { color: var(--ink); font-size: 21px; }
+.login-box p { margin-bottom: 22px; }
+.login-box button { height: 42px; }
+.login-error { background: var(--crit-tint); color: var(--crit); }
+
+/* Impressão do navegador (Ctrl+P na própria tela): sem cabeçalho fixo */
+@media print { header { position: static; } }
 </style>
 </head>
 <body>
@@ -297,12 +540,6 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <i class="fas fa-pills"></i>
 <h1 id="hospitalTitle">Controle de Antibióticos</h1>
 </div>
-<div class="user-info">
-<div class="user-avatar">FC</div>
-<div id="loggedUserEmail">Farmácia Clínica</div>
-<button class="logout-btn" id="logoutBtn" title="Sair"><i class="fas fa-right-from-bracket"></i></button>
-</div>
-</header>
 <nav>
 <ul>
 <li><a href="#" class="active" data-tab="registros"><i class="fas fa-list-alt"></i> Registros</a></li>
@@ -312,12 +549,19 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <li><a href="#" data-tab="configuracoes"><i class="fas fa-cog"></i> Configurações</a></li>
 </ul>
 </nav>
+<div class="user-info">
+<div class="user-avatar">FC</div>
+<div id="loggedUserEmail">Farmácia Clínica</div>
+<button class="logout-btn" id="logoutBtn" title="Sair"><i class="fas fa-right-from-bracket"></i></button>
+</div>
+</header>
+
 
 
 <!-- Conteúdo da aba Registros -->
 <div id="registros" class="tab-content active">
 <div class="dashboard-cards">
-<div class="card">
+<div class="card card-filter" data-filter-status="" role="button" tabindex="0" title="Mostrar todos os registros">
 <div class="card-header">
 <div class="card-title">Total de Registros</div>
 <div class="card-icon blue"><i class="fas fa-list"></i></div>
@@ -325,7 +569,7 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div class="card-value" id="totalRecords">0</div>
 <div class="card-description">Registros no sistema</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Ativo" role="button" tabindex="0" title="Mostrar tratamentos ativos">
 <div class="card-header">
 <div class="card-title">Tratamentos Ativos</div>
 <div class="card-icon green"><i class="fas fa-check-circle"></i></div>
@@ -333,7 +577,7 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div class="card-value" id="activeTreatments">0</div>
 <div class="card-description">Pacientes em andamento</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Suspenso" role="button" tabindex="0" title="Mostrar tratamentos suspensos">
 <div class="card-header">
 <div class="card-title">Tratamentos Suspensos</div>
 <div class="card-icon orange"><i class="fas fa-exclamation-circle"></i></div>
@@ -341,7 +585,7 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div class="card-value" id="reviewNeeded">0</div>
 <div class="card-description">Necessitam atenção</div>
 </div>
-<div class="card">
+<div class="card card-filter" data-filter-status="Finalizado" role="button" tabindex="0" title="Mostrar finalizados">
 <div class="card-header">
 <div class="card-title">Finalizados</div>
 <div class="card-icon red"><i class="fas fa-flag"></i></div>
@@ -353,39 +597,27 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 
 <div class="expiring-alert" id="expiringAlert" style="display:none;"></div>
 
-<div class="filters">
-<div class="filter-group">
-<label for="search">Pesquisar</label>
-<input type="text" id="search" placeholder="Digite para filtrar...">
+<div class="filter-panel" id="recordFilterPanel">
+<div class="fp-top">
+<div class="fp-search">
+<i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+<input type="search" id="search" placeholder="Buscar paciente, medicamento, setor, dosagem..." autocomplete="off" aria-label="Buscar registros">
+<button type="button" class="fp-clear-search" id="searchClear" aria-label="Limpar busca" hidden><i class="fas fa-xmark"></i></button>
 </div>
-<div class="filter-group">
-<label for="status">Status</label>
-<select id="status">
-<option value="">Todos</option>
-<option value="Ativo">Ativo</option>
-<option value="Finalizado">Finalizado</option>
-<option value="Suspenso">Suspenso</option>
-</select>
+<button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo registro</button>
 </div>
-<div class="filter-group">
-<label for="date">Data de Início</label>
-<input type="date" id="date">
+<div class="fp-row"><span class="fp-label" id="lblStatus">Status</span><div class="chip-group" id="statusChips" role="group" aria-labelledby="lblStatus"></div></div>
+<div class="fp-row"><span class="fp-label" id="lblSetor">Setor</span><div class="chip-group" id="setorChips" role="group" aria-labelledby="lblSetor"></div></div>
+<div class="fp-row"><span class="fp-label" id="lblPeriodo">Início</span><div class="chip-group" id="periodChips" role="group" aria-labelledby="lblPeriodo"></div>
+<div class="fp-range" id="periodRange" hidden><label>de <input type="date" id="dateFrom"></label><label>até <input type="date" id="dateTo"></label></div></div>
+<div class="fp-summary">
+<span class="fp-result" id="filterResultText" aria-live="polite"></span>
+<span class="fp-active" id="filterActiveText"></span>
+<div class="fp-actions">
+<button type="button" class="btn-link" id="clearFilters" hidden><i class="fas fa-filter-circle-xmark"></i> Limpar filtros</button>
+<button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download"></i> Exportar</button>
+<button class="btn btn-secondary" id="printBtn"><i class="fas fa-print"></i> Imprimir</button>
 </div>
-<div class="filter-group">
-<label for="patient">Paciente</label>
-<input type="text" id="patient" placeholder="Filtrar por paciente">
-</div>
-</div>
-
-<div class="actions">
-<div>
-<button class="btn btn-primary" id="addRecord"><i class="fas fa-plus"></i> Novo Registro</button>
-</div>
-<div>
-<span class="print-orientation"><label for="printOrientationRegistros">Impressão</label>
-<select id="printOrientationRegistros"><option value="landscape">Paisagem</option><option value="portrait">Retrato</option><option value="auto">Escolher ao imprimir</option></select></span>
-<button class="btn btn-success" id="exportBtn"><i class="fas fa-download"></i> Exportar</button>
-<button class="btn btn-danger" id="printBtn"><i class="fas fa-print"></i> Imprimir</button>
 </div>
 </div>
 
@@ -425,37 +657,25 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div id="estoque" class="tab-content">
 <h2>Estoque de Antibióticos</h2>
 <p>Situação do estoque (CAF + Farmácia) e do que já está reservado para tratamentos em andamento. Referência: <strong id="stockReferenceDate">nunca atualizado via PDF</strong>.</p>
-<div class="stock-legend">
-<span><i style="background:#8e44ad"></i> M. Crítico</span>
-<span><i style="background:#a93226"></i> Crítico</span>
-<span><i style="background:#f39c12"></i> Atenção</span>
-<span><i style="background:#2ecc71"></i> Disponível</span>
+<div class="filter-panel" id="stockFilterPanel">
+<div class="fp-top">
+<div class="fp-search">
+<i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+<input type="search" id="estoque-search" placeholder="Buscar antibiótico pelo nome ou código..." autocomplete="off" aria-label="Buscar antibiótico">
+<button type="button" class="fp-clear-search" id="estoqueSearchClear" aria-label="Limpar busca" hidden><i class="fas fa-xmark"></i></button>
 </div>
-<div class="filters">
-<div class="filter-group">
-<label for="estoque-search">Pesquisar Antibiótico</label>
-<input type="text" id="estoque-search" placeholder="Digite o nome do antibiótico...">
-</div>
-<div class="filter-group">
-<label for="estoque-status">Situação</label>
-<select id="estoque-status">
-<option value="">Todas</option>
-<option value="mcritico">M. Crítico</option>
-<option value="critico">Crítico</option>
-<option value="atencao">Atenção</option>
-<option value="normal">Disponível</option>
-</select>
-</div>
-</div>
-<div class="actions">
-<div><p style="color:#888; font-size:13px;"><i class="fas fa-info-circle"></i> "Tratamento em Andamento" é calculado automaticamente a partir dos registros ativos (quantidade que ainda falta usar até o término, diminuindo dia a dia). Edite apenas "Estoque" — o "Disponível" é recalculado automaticamente.</p></div>
-<div>
-<button class="btn btn-success" id="importPdfBtn"><i class="fas fa-file-pdf"></i> Carregar PDF do Soul MV</button>
+<button class="btn btn-primary" id="importPdfBtn"><i class="fas fa-file-pdf"></i> Carregar PDF do Soul MV</button>
 <input type="file" id="importPdfInput" accept="application/pdf" style="display:none;">
-<span class="print-orientation"><label for="printOrientationEstoque">Impressão</label>
-<select id="printOrientationEstoque"><option value="portrait">Retrato</option><option value="landscape">Paisagem</option><option value="auto">Escolher ao imprimir</option></select></span>
-<button class="btn btn-primary" id="printStockBtn"><i class="fas fa-print"></i> Imprimir</button>
+</div>
+<div class="fp-row"><span class="fp-label" id="lblSituacao">Situação</span><div class="chip-group" id="stockStatusChips" role="group" aria-labelledby="lblSituacao"></div></div>
+<div class="fp-summary">
+<span class="fp-result" id="stockResultText" aria-live="polite"></span>
+<span class="fp-active fp-help"><i class="fas fa-info-circle"></i> "Tratamento em Andamento" é calculado a partir dos registros ativos (o que ainda falta usar até o término). Edite apenas "Estoque".</span>
+<div class="fp-actions">
+<button type="button" class="btn-link" id="clearStockFilters" hidden><i class="fas fa-filter-circle-xmark"></i> Limpar filtros</button>
+<button class="btn btn-secondary" id="printStockBtn"><i class="fas fa-print"></i> Imprimir</button>
 <button class="btn btn-danger" id="resetStockBtn"><i class="fas fa-undo"></i> Restaurar valores originais</button>
+</div>
 </div>
 </div>
 <div class="data-table-container">
@@ -656,10 +876,8 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 </div>
 <div class="actions">
 <div>
-<span class="print-orientation"><label for="printOrientationRelatorios">Impressão</label>
-<select id="printOrientationRelatorios"><option value="auto" selected>Escolher ao imprimir</option><option value="portrait">Retrato</option><option value="landscape">Paisagem</option></select></span>
-<button class="btn btn-primary" id="reportMonthlyBtn"><i class="fas fa-download"></i> <span id="reportPrintLabel">Relatório Mensal</span></button>
-<button class="btn btn-success" id="reportExportBtn"><i class="fas fa-file-excel"></i> Exportar para Excel</button>
+<button class="btn btn-secondary" id="reportMonthlyBtn"><i class="fas fa-download"></i> <span id="reportPrintLabel">Relatório Mensal</span></button>
+<button class="btn btn-secondary" id="reportExportBtn"><i class="fas fa-file-excel"></i> Exportar para Excel</button>
 </div>
 </div>
 
@@ -768,7 +986,7 @@ footer { background: white; padding: 15px 20px; text-align: center; font-size: 1
 <div class="actions" style="margin-bottom: 18px;">
 <div>
 <button class="btn btn-primary" id="backupBtn"><i class="fas fa-database"></i> Realizar Backup Agora</button>
-<button class="btn btn-success" id="restoreBtn"><i class="fas fa-history"></i> Restaurar Backup</button>
+<button class="btn btn-secondary" id="restoreBtn"><i class="fas fa-history"></i> Restaurar Backup</button>
 <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
 </div>
 </div>
@@ -797,15 +1015,15 @@ Faça um backup antes de rodar essa ferramenta. Recomendado gerar um backup (bot
 </div>
 </div>
 <div class="actions" style="margin-bottom: 0;">
-<button class="btn btn-primary" id="checkMedMismatchBtn"><i class="fas fa-magnifying-glass"></i> Verificar Registros Divergentes</button>
+<button class="btn btn-secondary" id="checkMedMismatchBtn"><i class="fas fa-magnifying-glass"></i> Verificar Registros Divergentes</button>
 </div>
 </div>
 
 </div>
 
 <div class="actions" style="margin-top: 20px;">
-<button class="btn btn-success" id="saveConfigBtn"><i class="fas fa-save"></i> Salvar Configurações</button>
-<button class="btn btn-danger" id="cancelConfigBtn"><i class="fas fa-times"></i> Cancelar</button>
+<button class="btn btn-primary" id="saveConfigBtn"><i class="fas fa-save"></i> Salvar Configurações</button>
+<button class="btn btn-secondary" id="cancelConfigBtn"><i class="fas fa-times"></i> Cancelar</button>
 </div>
 </div>
 
@@ -921,8 +1139,8 @@ Faça um backup antes de rodar essa ferramenta. Recomendado gerar um backup (bot
 </select>
 </div>
 <div class="form-actions">
-<button class="btn btn-danger" id="cancelBtn">Cancelar</button>
-<button class="btn btn-success" id="saveBtn">Salvar</button>
+<button class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+<button class="btn btn-primary" id="saveBtn">Salvar</button>
 </div>
 </div>
 </div>
@@ -941,8 +1159,8 @@ Faça um backup antes de rodar essa ferramenta. Recomendado gerar um backup (bot
 <!-- preenchido via JS -->
 </div>
 <div class="form-actions">
-<button class="btn btn-danger" id="cancelMedMigrationBtn">Cancelar</button>
-<button class="btn btn-success" id="applyMedMigrationBtn">Aplicar Alterações</button>
+<button class="btn btn-secondary" id="cancelMedMigrationBtn">Cancelar</button>
+<button class="btn btn-primary" id="applyMedMigrationBtn">Aplicar Alterações</button>
 </div>
 </div>
 </div>
@@ -1202,20 +1420,70 @@ function updateDashboard() {
 /* ==========================================================================
    TABELA PRINCIPAL: FILTRO + PAGINAÇÃO + RENDERIZAÇÃO
    ========================================================================== */
-function getFilteredRecords() {
-  const searchText = document.getElementById('search').value.toLowerCase();
-  const statusFilter = document.getElementById('status').value;
-  const patientFilter = document.getElementById('patient').value.toLowerCase();
-  const dateFilter = document.getElementById('date').value; // formato YYYY-MM-DD
+/* ---------- Painel de filtros da aba Registros ---------- */
+// Estado único dos filtros (a tela é só um reflexo dele; ver renderRecordFilterUI).
+const recordFilters = { search: '', status: '', setores: new Set(), period: '', from: '', to: '' };
+const STATUS_CHIPS = [
+  { value: '', label: 'Todos', color: 'var(--teal)' },
+  { value: 'Ativo', label: 'Ativos', color: 'var(--ok)' },
+  { value: 'Suspenso', label: 'Suspensos', color: 'var(--crit)' },
+  { value: 'Finalizado', label: 'Finalizados', color: 'var(--done)' }
+];
+const PERIOD_CHIPS = [
+  { value: '', label: 'Qualquer data' },
+  { value: 'hoje', label: 'Hoje' },
+  { value: '7d', label: 'Últimos 7 dias' },
+  { value: 'mes', label: 'Este mês' },
+  { value: 'mespassado', label: 'Mês passado' },
+  { value: 'custom', label: 'Escolher datas' }
+];
+// Campos considerados na busca livre (os de auditoria e o id ficam de fora).
+const SEARCH_FIELDS = ['dataRegistro', 'setor', 'paciente', 'medicamento', 'via', 'dosagem', 'tratamento', 'posologia', 'inicio', 'termino', 'status'];
 
-  let result = records.filter(r => {
-    const rowText = Object.values(r).join(' ').toLowerCase();
-    const matchesSearch = !searchText || rowText.includes(searchText);
-    const matchesStatus = !statusFilter || r.status === statusFilter;
-    const matchesPatient = !patientFilter || r.paciente.toLowerCase().includes(patientFilter);
-    const matchesDate = !dateFilter || r.inicio === formatDateForDisplay(dateFilter);
-    return matchesSearch && matchesStatus && matchesPatient && matchesDate;
-  });
+// Minúsculas e sem acento: "joao" encontra "JOÃO".
+function normalizeSearch(value) {
+  return String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+// Intervalo [de, até] (datas locais, inclusive) do filtro de período, ou null se não houver.
+function getPeriodBounds() {
+  const hoje = startOfDay(new Date());
+  switch (recordFilters.period) {
+    case 'hoje': return { from: hoje, to: hoje };
+    case '7d': return { from: addDays(hoje, -6), to: hoje };
+    case 'mes': return { from: new Date(hoje.getFullYear(), hoje.getMonth(), 1), to: new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0) };
+    case 'mespassado': return { from: new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1), to: new Date(hoje.getFullYear(), hoje.getMonth(), 0) };
+    case 'custom': {
+      const parse = v => { if (!v) return null; const [y, m, d] = v.split('-').map(Number); return new Date(y, m - 1, d); };
+      const from = parse(recordFilters.from), to = parse(recordFilters.to);
+      return (from || to) ? { from, to } : null;
+    }
+    default: return null;
+  }
+}
+
+// skipStatus: usado para contar quantos registros cada botão de status mostraria.
+function recordMatchesFilters(r, skipStatus, bounds, term) {
+  if (term && !normalizeSearch(SEARCH_FIELDS.map(f => r[f]).join(' ')).includes(term)) return false;
+  if (!skipStatus && recordFilters.status && r.status !== recordFilters.status) return false;
+  if (recordFilters.setores.size && !recordFilters.setores.has(r.setor)) return false;
+  if (bounds) {
+    const inicio = parseDateBR(r.inicio);
+    if (!inicio) return false;
+    if (bounds.from && inicio < bounds.from) return false;
+    if (bounds.to && inicio > bounds.to) return false;
+  }
+  return true;
+}
+
+function hasRecordFilters() {
+  return !!(recordFilters.search || recordFilters.status || recordFilters.setores.size || getPeriodBounds() || Object.keys(columnFilters).length);
+}
+
+function getFilteredRecords() {
+  const bounds = getPeriodBounds();
+  const term = normalizeSearch(recordFilters.search);
+  let result = records.filter(r => recordMatchesFilters(r, false, bounds, term));
 
   Object.keys(columnFilters).forEach(col => {
     const allowed = columnFilters[col];
@@ -1410,6 +1678,7 @@ function renderTable() {
   const mainTable = document.getElementById('mainTable');
 
   const filtered = getFilteredRecords();
+  renderRecordFilterUI(filtered.length);
 
   if (filtered.length === 0) {
     tableBody.innerHTML = '';
@@ -1637,10 +1906,99 @@ function setupEventListeners() {
 }
 
 function setupFilterListeners() {
-  document.getElementById('search').addEventListener('input', filterTable);
-  document.getElementById('status').addEventListener('change', filterTable);
-  document.getElementById('date').addEventListener('change', filterTable);
-  document.getElementById('patient').addEventListener('input', filterTable);
+  const search = document.getElementById('search');
+  const searchClear = document.getElementById('searchClear');
+  search.addEventListener('input', () => { recordFilters.search = search.value; filterTable(); });
+  searchClear.addEventListener('click', () => { search.value = ''; recordFilters.search = ''; filterTable(); search.focus(); });
+
+  // Delegação: os botões são recriados a cada renderização.
+  document.getElementById('statusChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    recordFilters.status = chip.dataset.value; filterTable();
+  });
+  document.getElementById('setorChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    const v = chip.dataset.value;
+    if (v === '') recordFilters.setores.clear();
+    else if (recordFilters.setores.has(v)) recordFilters.setores.delete(v);
+    else recordFilters.setores.add(v);
+    filterTable();
+  });
+  document.getElementById('periodChips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    recordFilters.period = chip.dataset.value; filterTable();
+    if (recordFilters.period === 'custom') document.getElementById('dateFrom').focus();
+  });
+  ['dateFrom', 'dateTo'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+    recordFilters[id === 'dateFrom' ? 'from' : 'to'] = e.target.value; filterTable();
+  }));
+
+  document.getElementById('clearFilters').addEventListener('click', clearRecordFilters);
+
+  // Os cartões de indicadores também filtram por status.
+  document.querySelectorAll('#registros .card-filter').forEach(card => {
+    const apply = () => { recordFilters.status = card.dataset.filterStatus; filterTable(); };
+    card.addEventListener('click', apply);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apply(); } });
+  });
+}
+
+function clearRecordFilters() {
+  recordFilters.search = ''; recordFilters.status = ''; recordFilters.setores.clear();
+  recordFilters.period = ''; recordFilters.from = ''; recordFilters.to = '';
+  document.getElementById('search').value = '';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  // Também limpa os filtros e a ordenação das colunas da tabela.
+  columnFilters = {}; columnSort = null;
+  document.querySelectorAll('.col-filter-btn.active').forEach(b => b.classList.remove('active'));
+  filterTable();
+}
+
+// Redesenha os botões e o resumo a partir de recordFilters. Chamado a cada renderTable().
+function renderRecordFilterUI(resultCount) {
+  const bounds = getPeriodBounds();
+  const term = normalizeSearch(recordFilters.search);
+  const base = records.filter(r => recordMatchesFilters(r, true, bounds, term));
+  const chip = (value, label, pressed, extra = '') =>
+    `<button type="button" class="chip" data-value="${escapeHtml(value)}" aria-pressed="${pressed}" ${extra}>${label}</button>`;
+
+  document.getElementById('statusChips').innerHTML = STATUS_CHIPS.map(c => {
+    const n = c.value ? base.filter(r => r.status === c.value).length : base.length;
+    const dot = c.value ? '<span class="dot"></span>' : '';
+    return chip(c.value, `${dot}${c.label} <span class="count">${n}</span>`, recordFilters.status === c.value, `style="--chip-color:${c.color}"`);
+  }).join('');
+
+  const setores = sortedUnique([...SETORES_PADRAO, ...records.map(r => r.setor).filter(Boolean)]);
+  document.getElementById('setorChips').innerHTML =
+    chip('', 'Todos', recordFilters.setores.size === 0) +
+    setores.map(st => chip(st, escapeHtml(st), recordFilters.setores.has(st))).join('');
+
+  document.getElementById('periodChips').innerHTML =
+    PERIOD_CHIPS.map(c => chip(c.value, c.label, recordFilters.period === c.value)).join('');
+  document.getElementById('periodRange').hidden = recordFilters.period !== 'custom';
+  document.getElementById('searchClear').hidden = !recordFilters.search;
+
+  // Resumo: quantos registros e quais filtros estão ligados.
+  const active = [];
+  if (recordFilters.search) active.push(`busca "${escapeHtml(recordFilters.search)}"`);
+  if (recordFilters.status) active.push(STATUS_CHIPS.find(c => c.value === recordFilters.status).label);
+  if (recordFilters.setores.size) active.push([...recordFilters.setores].map(escapeHtml).join(', '));
+  if (bounds) {
+    const fmt = d => d ? formatDateBR(d) : '…';
+    active.push(recordFilters.period === 'custom'
+      ? `início de ${fmt(bounds.from)} até ${fmt(bounds.to)}`
+      : PERIOD_CHIPS.find(c => c.value === recordFilters.period).label.toLowerCase());
+  }
+  const nCol = Object.keys(columnFilters).length;
+  if (nCol) active.push(`${nCol} filtro(s) de coluna`);
+  document.getElementById('filterResultText').innerHTML =
+    `<strong>${resultCount}</strong> ${resultCount === 1 ? 'registro' : 'registros'}` + (active.length ? '' : ' no total');
+  document.getElementById('filterActiveText').innerHTML = active.length ? 'Filtrando por ' + active.join(' · ') : '';
+  document.getElementById('clearFilters').hidden = !hasRecordFilters();
+
+  document.querySelectorAll('#registros .card-filter').forEach(card =>
+    card.classList.toggle('is-selected', card.dataset.filterStatus === recordFilters.status && hasRecordFilters()));
 }
 
 function openAddModal() {
@@ -1907,12 +2265,11 @@ function exportToCSV() {
   showNotification(`${filtered.length} registro(s) exportado(s) com sucesso!`, 'success');
 }
 
-// Regra @page da impressão. Com 'auto' NÃO fixamos tamanho/orientação: assim o Chrome mostra a opção
-// "Layout" (Retrato/Paisagem) na própria janela de impressão. Fixando size, ele esconde essa opção.
-function buildPageRule(orientation) {
-  return orientation === 'auto'
-    ? '@page { margin: 10mm; }'
-    : `@page { size: A4 ${orientation}; margin: 10mm; }`;
+// Regra @page da impressão. Não fixamos tamanho nem orientação: assim o Chrome mostra
+// "Layout" (Retrato/Paisagem) na própria janela de impressão e o usuário escolhe ali.
+// (Fixar "size" esconde essa opção, por isso não existe mais seletor de orientação na tela.)
+function buildPageRule() {
+  return '@page { margin: 10mm; }';
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -1944,14 +2301,13 @@ function printTable() {
     return;
   }
 
-  const orientation = document.getElementById('printOrientationRegistros').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const filtered = getFilteredRecords();
   const total = filtered.length;
   const ativos = filtered.filter(r => r.status === 'Ativo').length;
   const finalizados = filtered.filter(r => r.status === 'Finalizado').length;
   const suspensos = filtered.filter(r => r.status === 'Suspenso').length;
-  const filtrosAtivos = Object.keys(columnFilters).length > 0 || document.getElementById('search').value || document.getElementById('status').value || document.getElementById('date').value || document.getElementById('patient').value;
+  const filtrosAtivos = hasRecordFilters();
 
   let rows = '';
   filtered.forEach(record => {
@@ -2014,7 +2370,7 @@ function printTable() {
       .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
         table { page-break-inside: auto; }
         tr { page-break-inside: avoid; }
         thead { display: table-header-group; }
@@ -2065,6 +2421,7 @@ function printTable() {
 // documento de estoque é removido do Firestore. "Tratamento" não entra aqui —
 // ele é sempre recalculado a partir dos registros ativos, nunca armazenado.
 const stockOriginalValues = {};
+let refreshStockFilter = null; // definida em setupStockTab()
 const stockDebounceTimers = {};
 
 // Classifica a quantidade disponível nas faixas definidas pela farmácia:
@@ -2465,6 +2822,7 @@ function recomputeStockTratamento() {
   });
 
   updateStockUnmatchedWarning(unmatched, ambiguous);
+  if (refreshStockFilter) refreshStockFilter();
 }
 
 function updateStockUnmatchedWarning(unmatched, ambiguous) {
@@ -2514,6 +2872,8 @@ function applyStockSnapshot(snapshot) {
     }
     recalcStockRow(row);
   });
+  // Se alguém está digitando um estoque, só atualiza as contagens (a linha não some).
+  if (refreshStockFilter) refreshStockFilter({ countsOnly: !!(document.activeElement && document.activeElement.classList.contains('stock-estoque')) });
 }
 
 // Grava o Estoque no Firestore com debounce (evita uma escrita a cada tecla digitada).
@@ -2644,7 +3004,6 @@ function parseSoulMvStockPdf(rawText, knownCodes) {
 
 function setupStockTab() {
   const searchInput = document.getElementById('estoque-search');
-  const statusSelect = document.getElementById('estoque-status');
   const tbody = document.getElementById('stockTableBody');
   const emptyState = document.getElementById('stockEmptyState');
 
@@ -2660,6 +3019,7 @@ function setupStockTab() {
       const row = e.target.closest('tr');
       const cod = row.getAttribute('data-cod');
       recalcStockRow(row);
+      if (refreshStockFilter) refreshStockFilter({ countsOnly: true });
       saveStockRow(cod, row.querySelector('.stock-estoque').value);
     }
   });
@@ -2745,24 +3105,57 @@ function setupStockTab() {
     }
   });
 
-  function filterStock() {
-    const term = searchInput.value.toLowerCase();
-    const status = statusSelect.value;
+  // Filtro: busca (nome ou código, sem acento) + botões de situação com contagem.
+  const stockFilter = { search: '', status: '' };
+  const STOCK_CHIPS = [
+    { value: '', label: 'Todas', color: 'var(--teal)' },
+    { value: 'mcritico', label: 'M. Crítico', color: 'var(--mcrit)' },
+    { value: 'critico', label: 'Crítico', color: 'var(--stock-crit)' },
+    { value: 'atencao', label: 'Atenção', color: 'var(--warn)' },
+    { value: 'normal', label: 'Disponível', color: 'var(--ok)' }
+  ];
+  const chipsBox = document.getElementById('stockStatusChips');
+  const clearBtn = document.getElementById('estoqueSearchClear');
+  const clearFiltersBtn = document.getElementById('clearStockFilters');
+
+  // countsOnly: atualiza contagens e resumo sem esconder/mostrar linhas (usado enquanto o
+  // usuário digita um estoque, para a linha editada não sumir no meio da digitação).
+  function filterStock(options = {}) {
+    const term = normalizeSearch(stockFilter.search);
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const counts = { '': 0 };
     let visibleCount = 0;
-    tbody.querySelectorAll('tr').forEach(row => {
-      const name = row.children[1].textContent.toLowerCase();
+    rows.forEach(row => {
+      const text = normalizeSearch(row.children[0].textContent + ' ' + row.children[1].textContent);
       const rowStatus = row.getAttribute('data-status');
-      const matchesTerm = !term || name.includes(term);
-      const matchesStatus = !status || status === rowStatus;
-      const visible = matchesTerm && matchesStatus;
-      row.style.display = visible ? '' : 'none';
+      const matchesTerm = !term || text.includes(term);
+      if (matchesTerm) { counts[''] += 1; counts[rowStatus] = (counts[rowStatus] || 0) + 1; }
+      const visible = options.countsOnly ? row.style.display !== 'none'
+        : matchesTerm && (!stockFilter.status || stockFilter.status === rowStatus);
+      if (!options.countsOnly) row.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
     emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
-  }
 
-  searchInput.addEventListener('input', filterStock);
-  statusSelect.addEventListener('change', filterStock);
+    chipsBox.innerHTML = STOCK_CHIPS.map(c =>
+      `<button type="button" class="chip" data-value="${c.value}" aria-pressed="${stockFilter.status === c.value}" style="--chip-color:${c.color}">` +
+      `${c.value ? '<span class="dot"></span>' : ''}${c.label} <span class="count">${counts[c.value] || 0}</span></button>`).join('');
+    clearBtn.hidden = !stockFilter.search;
+    clearFiltersBtn.hidden = !stockFilter.search && !stockFilter.status;
+    document.getElementById('stockResultText').innerHTML =
+      `<strong>${visibleCount}</strong> de ${rows.length} antibióticos`;
+  }
+  // As situações mudam quando o estoque ou os tratamentos mudam: recalcula botões e contagens.
+  refreshStockFilter = filterStock;
+
+  searchInput.addEventListener('input', () => { stockFilter.search = searchInput.value; filterStock(); });
+  clearBtn.addEventListener('click', () => { searchInput.value = ''; stockFilter.search = ''; filterStock(); searchInput.focus(); });
+  chipsBox.addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    stockFilter.status = chip.dataset.value; filterStock();
+  });
+  clearFiltersBtn.addEventListener('click', () => { searchInput.value = ''; stockFilter.search = ''; stockFilter.status = ''; filterStock(); });
+  filterStock();
 }
 
 
@@ -2776,7 +3169,6 @@ function printStockTable(tbody) {
     return;
   }
 
-  const orientation = document.getElementById('printOrientationEstoque').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const statusLabels = { normal: 'Disponível', atencao: 'Atenção', critico: 'Crítico', mcritico: 'M. Crítico' };
   const statusColors = { normal: '#2ecc71', atencao: '#f39c12', critico: '#a93226', mcritico: '#8e44ad' };
@@ -2843,7 +3235,7 @@ function printStockTable(tbody) {
       .report-footer { margin-top: 22px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
         table { page-break-inside: auto; }
         tr { page-break-inside: avoid; }
         thead { display: table-header-group; }
@@ -3048,15 +3440,20 @@ function aggregateRecordsByMonth(year, month) {
   return aggregateRange(getReportRecords(), start, end, reportState.countMode, startOfDay(new Date())).byMed;
 }
 
-function buildMedRows(cur, prev) {
+// curCmp (opcional): recorte do período atual usado só na comparação (até hoje, quando
+// o período está em andamento). A quantidade exibida continua sendo a do período inteiro.
+function buildMedRows(cur, prev, curCmp = cur) {
   return Object.keys(cur.byMed).map(medicamento => {
     const c = cur.byMed[medicamento];
+    const cmpQtd = curCmp.byMed[medicamento] ? curCmp.byMed[medicamento].quantidade : 0;
     const prevQtd = prev.byMed[medicamento] ? prev.byMed[medicamento].quantidade : 0;
     let variacao;
     if (prevQtd === 0) {
-      variacao = c.quantidade > 0 ? 'novo' : '0%';
+      variacao = cmpQtd > 0 ? 'novo' : '—';
+    } else if (cmpQtd === 0) {
+      variacao = '—';
     } else {
-      const pct = ((c.quantidade - prevQtd) / prevQtd) * 100;
+      const pct = ((cmpQtd - prevQtd) / prevQtd) * 100;
       variacao = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
     }
     const via = Object.entries(c.viaCount).sort((a, b) => b[1] - a[1])[0][0];
@@ -3375,9 +3772,20 @@ function renderReportsTab() {
   const recs = getReportRecords();
   const range = getPeriodRange(type, reportState.anchor);
   const prevRange = getPeriodRange(type, shiftAnchor(type, reportState.anchor, -1));
+  // Período em andamento (mês/ano atual): compara com o MESMO trecho do período anterior
+  // (ex.: 1–10/nov x 1–10/out). Comparar o mês parcial com o mês anterior inteiro mostrava
+  // uma "queda" falsa na Tendência e na coluna Variação.
+  const inProgress = type !== 'day' && today >= range.start && today <= range.end;
+  let prevEnd = prevRange.end;
+  if (inProgress) {
+    const elapsedDays = Math.round((today - range.start) / DAY_MS);
+    const sameSpan = addDays(prevRange.start, elapsedDays);
+    if (sameSpan < prevRange.end) prevEnd = sameSpan;
+  }
   const cur = aggregateRange(recs, range.start, range.end, reportState.countMode, today);
-  const prev = aggregateRange(recs, prevRange.start, prevRange.end, reportState.countMode, today);
-  const rows = buildMedRows(cur, prev);
+  const prev = aggregateRange(recs, prevRange.start, prevEnd, reportState.countMode, today);
+  const curCmp = inProgress ? aggregateRange(recs, range.start, today, reportState.countMode, today) : cur;
+  const rows = buildMedRows(cur, prev, curCmp);
   const sectorRows = buildSectorRows(cur);
   const periodLabel = formatPeriodLabel(type, reportState.anchor);
   const kpis = [];
@@ -3400,16 +3808,18 @@ function renderReportsTab() {
 
   // KPI: tendência vs. período anterior
   let trendValue, trendDesc;
-  if (prev.total > 0) {
-    const pct = ((cur.total - prev.total) / prev.total) * 100;
+  const prevLabel = inProgress ? `mesmo período do ${txt.prev} (até ${formatDateBR(prevEnd)})` : txt.prev;
+  if (cur.total === 0 || curCmp.total === 0) {
+    // Sem consumo no período: não há tendência a mostrar (antes aparecia -100%).
+    trendValue = 'Sem dados';
+    trendDesc = inProgress ? `Ainda sem consumo registrado ${txt.of}` : 'Sem consumo no período';
+  } else if (prev.total > 0) {
+    const pct = ((curCmp.total - prev.total) / prev.total) * 100;
     trendValue = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`;
-    trendDesc = `Comparado ao ${txt.prev}`;
-  } else if (cur.total > 0) {
-    trendValue = 'Novo';
-    trendDesc = `Sem consumo no ${txt.prev}`;
+    trendDesc = `Comparado ao ${prevLabel}`;
   } else {
-    trendValue = '—';
-    trendDesc = 'Sem dados no período';
+    trendValue = 'Novo';
+    trendDesc = `Sem consumo no ${prevLabel}`;
   }
   setText('reportTrend', trendValue);
   setText('reportTrendDesc', trendDesc);
@@ -3435,7 +3845,7 @@ function renderReportsTab() {
     tbody.innerHTML = rows.map(r => {
       const isNovo = r.variacao === 'novo';
       const isPositive = r.variacao.startsWith('+');
-      const color = isNovo ? '#1565c0' : (isPositive ? 'green' : (r.variacao === '0%' ? '#777' : 'red'));
+      const color = isNovo ? '#1565c0' : (isPositive ? 'green' : ((r.variacao === '0%' || r.variacao === '—') ? '#777' : 'red'));
       return `<tr>
         <td>${escapeHtml(r.medicamento)}</td>
         <td><div class="rep-qty">${r.quantidade} unidades</div><div class="rep-bar"><span style="width:${pctOf(r.quantidade, maxQty)}%"></span></div></td>
@@ -3520,7 +3930,6 @@ function printReport() {
     showNotification('Habilite pop-ups para gerar o relatório.', 'error');
     return;
   }
-  const orientation = document.getElementById('printOrientationRelatorios').value;
   const hospitalName = document.getElementById('hospitalTitle').textContent || 'AC - Sistemas e Soluções';
   const reportWord = PERIOD_TEXT[d.type].report;
 
@@ -3535,10 +3944,10 @@ function printReport() {
     : d.rows.map(r => {
         const v = variationText(r.variacao);
         const isPositive = v.startsWith('+') || v === 'Novo';
-        const neutral = v === '0%';
+        const neutral = v === '0%' || v === '—';
         const badgeBg = neutral ? '#eceff1' : (isPositive ? '#e8f5e9' : '#ffebee');
         const badgeColor = neutral ? '#607d8b' : (isPositive ? '#2e7d32' : '#c62828');
-        const arrow = v === 'Novo' ? '●' : (neutral ? '–' : (isPositive ? '▲' : '▼'));
+        const arrow = v === 'Novo' ? '●' : (neutral ? '' : (isPositive ? '▲' : '▼'));
         return `<tr>
           <td><strong>${escapeHtml(r.medicamento)}</strong></td>
           <td>${r.quantidade} unidades</td>
@@ -3602,7 +4011,7 @@ function printReport() {
       .report-footer { margin-top: 24px; display:flex; justify-content: space-between; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
       @media print {
         body { padding: 12mm 14mm; }
-        ${buildPageRule(orientation)}
+        ${buildPageRule()}
       }
     </style></head><body>
     <div class="report-header">
